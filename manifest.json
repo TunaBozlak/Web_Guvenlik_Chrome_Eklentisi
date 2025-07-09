@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Web Security ve Malware Analizi",
+  "version": "1.0",
+  "description": "Web sitelerini kötü amaçlı yazılımlara ve güvenlik risklerine karşı analiz eder, Gemini aracılığıyla yapay zeka destekli öneriler sunar.",
+  "icons": {},
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {}
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

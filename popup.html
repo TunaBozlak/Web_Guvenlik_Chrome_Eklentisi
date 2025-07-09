@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Güvenlik Analizi</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h2>Web Güvenlik Analizi</h2>
+
+    <button id="change_theme">Tema Değiştir</button>
+
+    <button id="analysis_button">Analiz Et</button>
+    <div id="results"></div>
+
+    <button id="ai_button" disabled>AI Açıklamaları</button>
+    <div id="explanation"></div>
+
+    <button id="download_pdf" disabled>PDF Dosyasını İndir</button>
+
+    <h3>Analiz Geçmişi</h3>
+
+    <div id="history"></div>
+    <button id="delete_history">Geçmişi Sil</button>
+
+    <script src="libs/jspdf.umd.min.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

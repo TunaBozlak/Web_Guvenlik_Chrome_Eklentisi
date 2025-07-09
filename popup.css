@@ -1,0 +1,120 @@
+body {
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #333;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 20px;
+  width: 320px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h2,
+h3 {
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 5px;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+button:active {
+  background-color: #004085;
+  transform: translateY(0);
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#delete_history {
+  background-color: #dc3545;
+}
+
+#delete_history:hover {
+  background-color: #c82333;
+}
+
+#results,
+#explanation,
+#history {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 15px;
+  min-height: 50px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+#history {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+body.dark {
+  background-color: #3c4043;
+  color: #f0f0f0;
+}
+
+body.dark h2,
+body.dark h3 {
+  color: #ffffff;
+  border-color: #444;
+}
+
+body.dark button {
+  background-color: #1e88e5;
+  color: white;
+}
+
+body.dark button:hover {
+  background-color: #1565c0;
+}
+
+body.dark button:active {
+  background-color: #0d47a1;
+}
+
+body.dark button:disabled {
+  background-color: #555;
+  color: #aaa;
+}
+
+body.dark #delete_history {
+  background-color: #e53935;
+}
+
+body.dark #delete_history:hover {
+  background-color: #b71c1c;
+}
+
+body.dark #results,
+body.dark #explanation,
+body.dark #history {
+  background-color: #1e1e1e;
+  border-color: #333;
+  box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+}
