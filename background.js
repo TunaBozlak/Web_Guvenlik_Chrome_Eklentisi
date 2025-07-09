@@ -1,29 +1,77 @@
 importScripts("geminiAPI.js");
 
+//security headers almak için
+let latestHeaders = {};
+chrome.webRequest.onHeadersReceived.addListener(
+  (details) => {
+    const headers = {};
+    for (const header of details.responseHeaders) {
+      headers[header.name.toLowerCase()] = header.value;
+    }
+
+    latestHeaders[details.url] = headers;
+  },
+  { urls: ["<all_urls>"] },
+  ["responseHeaders"]
+);
+
+//virüs taraması için
+const api_key_virus =
+  "d0a18002bf84e72e5b216335b9b9800ed6c7259992a14da9e58a345ba875cdbc";
+
+const scanUrlWithVirusTotal = async (url) => {
+  const scanUrl = `https://www.virustotal.com/vtapi/v2/url/scan`;
+  const reportUrl = `https://www.virustotal.com/vtapi/v2/url/report`;
+  const scanResponse = await fetch(scanUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: `apikey=${api_key_virus}&url=${encodeURIComponent(url)}`,
+  });
+  const scanData = await scanResponse.json();
+  if (scanData.response_code !== 1) {
+    throw new Error("Virustotal scan başarısız");
+  }
+  const reportResponse = await fetch(
+    `${reportUrl}?apikey=${api_key_virus}&resource=${encodeURIComponent(url)}`
+  );
+  const reportData = await reportResponse.json();
+  if (reportData.response_code !== 1) {
+    throw new Error("Virustotal raporu alınamadı");
+  }
+  return reportData;
+};
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "analyze") {
     console.log("Analizlenen site:", message.url);
+    (async () => {
+      const headers = latestHeaders[message.url] || {};
+      const securityHeaders = {
+        "Content-Security-Policy":
+          headers["content-security-policy"] || "Missing",
+        "X-Frame-Options": headers["x-frame-options"] || "Missing",
+        "Strict-Transport-Security":
+          headers["strict-transport-security"] || "Missing",
+      };
 
-    const analysisResult = {
-      url: message.url,
-      securityHeaders: {
-        "Content-Security-Policy": "Missing",
-        "X-Frame-Options": "SAMEORIGIN",
-        "Strict-Transport-Security": "Missing",
-      },
-      malwareScan: {
-        status: "Unknown",
-        score: 0,
-      },
-      cookies: {
-        secure: false,
-        httpOnly: false,
-      },
-      jsAnalysis: {
-        riskyFunctions: ["eval", "document.write"],
-      },
-    };
-    sendResponse(analysisResult);
+      const malwareResult = await scanUrlWithVirusTotal(message.url);
+
+      const analysisResult = {
+        url: message.url,
+        securityHeaders,
+        malwareScan: malwareResult,
+        cookies: {
+          secure: false,
+          httpOnly: false,
+        },
+        jsAnalysis: {
+          riskyFunctions: ["eval", "document.write"],
+        },
+      };
+      sendResponse(analysisResult);
+    })();
     return true;
   }
 
