@@ -7,6 +7,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const history_div = document.getElementById("history");
   const clear_history_button = document.getElementById("delete_history");
   const explanation_div = document.getElementById("explanation");
+  const filter_button = document.getElementById("filter_button");
+  const reset_filter_button = document.getElementById("reset_filter_button");
+  const start_date_input = document.getElementById("start_date");
+  const end_date_input = document.getElementById("end_date");
+
+  filter_button.addEventListener("click", () => {
+    const start_date = new Date(start_date_input.value);
+    const end_date = new Date(end_date_input.value);
+    if (!start_date_input.value || !end_date_input.value) {
+      alert("Lütfen tarih aralığı seçiniz");
+      return;
+    }
+    displayHistory(start_date, end_date);
+  });
+
+  reset_filter_button.addEventListener("click", () => {
+    start_date_input.value = "";
+    end_date_input.value = "";
+    displayHistory();
+  });
 
   download_button.disabled = true;
   ai_button.disabled = true;
@@ -71,9 +91,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         results_div.appendChild(item);
 
+        const domain = new URL(site_url).origin;
         download_button.disabled = false;
         ai_button.disabled = false;
-        saveAnalysisHistory(response);
+        saveAnalysisHistory({ site: domain, ...response });
 
         download_button.onclick = () => {
           const { jsPDF } = window.jspdf;
@@ -169,27 +190,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  const displayHistory = () => {
+  const displayHistory = (start_date = null, end_date = null) => {
     chrome.storage.local.get("history", (data) => {
       history_div.innerHTML = "";
       const history = data.history || [];
 
-      if (history.length === 0) {
+      const filtered_history = history.filter((entry) => {
+        if (!start_date || !end_date) return true;
+        const entry_date = new Date(entry.date);
+        return entry_date >= start_date && entry_date <= end_date;
+      });
+
+      if (filtered_history.length === 0) {
         history_div.innerHTML = "Geçmiş Boş";
         return;
       }
 
-      history.forEach((entry, index) => {
+      filtered_history.forEach((entry, index) => {
         const item = document.createElement("div");
-
         item.style.border = "1px solid #ccc";
         item.style.padding = "8px";
         item.style.marginBottom = "8px";
         item.style.cursor = "pointer";
 
-        const date = document.createElement("div");
-        date.innerHTML = `<strong>${entry.date}</strong> <span style='float:right;'>&#9660;</span>`;
-        item.appendChild(date);
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
+
+        const leftPart = document.createElement("div");
+        const domain = entry.result?.site || "Bilinmeyen Site";
+        leftPart.innerHTML = `
+    <div style="font-weight: bold;">${domain}</div>
+    <div style="font-size: 12px; color: gray;">${entry.date}</div>
+  `;
+
+        const rightPart = document.createElement("div");
+        rightPart.style.display = "flex";
+        rightPart.style.alignItems = "center";
+        rightPart.style.gap = "8px";
+
+        const arrow = document.createElement("span");
+        arrow.innerHTML = "&#9660;";
 
         const analysis_delete_button = document.createElement("button");
         analysis_delete_button.textContent = "Sil";
@@ -198,15 +240,12 @@ document.addEventListener("DOMContentLoaded", () => {
           e.stopPropagation();
           deleteAnalysis(index);
         };
-        date.appendChild(analysis_delete_button);
 
-        const arrow = date.querySelector("span");
-        item.addEventListener("click", () => {
-          details.style.display =
-            details.style.display === "none" ? "block" : "none";
-          arrow.innerHTML =
-            details.style.display === "none" ? "&#9660;" : "&#9650;";
-        });
+        rightPart.appendChild(analysis_delete_button);
+        rightPart.appendChild(arrow);
+        header.appendChild(leftPart);
+        header.appendChild(rightPart);
+        item.appendChild(header);
 
         const details = document.createElement("div");
         details.style.display = "none";
@@ -216,8 +255,14 @@ document.addEventListener("DOMContentLoaded", () => {
           null,
           2
         )}</pre>`;
-
         item.appendChild(details);
+
+        item.addEventListener("click", () => {
+          details.style.display =
+            details.style.display === "none" ? "block" : "none";
+          arrow.innerHTML =
+            details.style.display === "none" ? "&#9660;" : "&#9650;";
+        });
 
         history_div.appendChild(item);
       });
@@ -237,7 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const history = data.history || [];
       history.splice(index, 1);
       chrome.storage.local.set({ history }, () => {
-        displayHistory(alert("Seçilen kayıt silindi"));
+        alert("Seçilen kayıt silindi");
+        displayHistory();
       });
     });
   };

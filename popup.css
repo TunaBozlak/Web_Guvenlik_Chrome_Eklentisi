@@ -142,3 +142,79 @@ body.dark .analysis-delete-button {
 body.dark .analysis-delete-button:hover {
   background-color: #b71c1c;
 }
+
+#filter {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+#filter label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+#filter input[type="date"] {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+#filter button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+  background-color: #007bff;
+  color: white;
+  font-size: 14px;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
+#filter button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+#filter button:active {
+  background-color: #004085;
+  transform: translateY(0);
+}
+
+body.dark #filter {
+  background-color: #1e1e1e;
+  border-color: #333;
+  box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+}
+
+body.dark #filter label {
+  color: #f0f0f0;
+}
+
+body.dark #filter input[type="date"] {
+  background-color: #333;
+  color: #f0f0f0;
+  border-color: #555;
+}
+
+body.dark #filter button {
+  background-color: #1e88e5;
+}
+
+body.dark #filter button:hover {
+  background-color: #1565c0;
+}
+
+body.dark #filter button:active {
+  background-color: #0d47a1;
+}
