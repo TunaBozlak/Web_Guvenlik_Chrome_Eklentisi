@@ -39,7 +39,38 @@ document.addEventListener("DOMContentLoaded", () => {
           action: "analyze",
           url: site_url,
         });
-        results_div.innerText = JSON.stringify(response, null, 2);
+
+        const item = document.createElement("div");
+        item.style.border = "1px solid #ccc";
+        item.style.padding = "8px";
+        item.style.marginTop = "8px";
+        item.style.cursor = "pointer";
+
+        const title = document.createElement("div");
+        title.innerHTML =
+          "<strong>Analiz Raporu</strong> <span style='float:right;'>&#9660;</span>";
+        item.appendChild(title);
+
+        const arrow = title.querySelector("span");
+        item.addEventListener("click", () => {
+          details.style.display =
+            details.style.display === "none" ? "block" : "none";
+          arrow.innerHTML =
+            details.style.display === "none" ? "&#9660;" : "&#9650;";
+        });
+
+        const details = document.createElement("div");
+        details.style.display = "none";
+        details.style.marginTop = "8px";
+        details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
+          response,
+          null,
+          2
+        )}</pre>`;
+        item.appendChild(details);
+
+        results_div.appendChild(item);
+
         download_button.disabled = false;
         ai_button.disabled = false;
         saveAnalysisHistory(response);
@@ -54,7 +85,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const analysisText = JSON.stringify(response, null, 2);
           const splitText = doc.splitTextToSize(analysisText, 180);
-          doc.text(splitText, 10, 40);
+
+          let y = 40;
+          splitText.forEach((line) => {
+            if (y > 280) {
+              doc.addPage();
+              y = 10;
+            }
+            doc.text(line, 10, y);
+            y += 7;
+          });
 
           doc.save("web_guvenlik.pdf");
         };
@@ -79,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
         result,
       });
 
-      if (history.length > 10) {
+      if (history.length > 20) {
         history.pop();
       }
 
@@ -91,22 +131,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const displayHistory = () => {
     chrome.storage.local.get("history", (data) => {
       history_div.innerHTML = "";
-
       const history = data.history || [];
+
       if (history.length === 0) {
         history_div.innerHTML = "Geçmiş Boş";
         return;
       }
+
       history.forEach((entry) => {
         const item = document.createElement("div");
+
         item.style.border = "1px solid #ccc";
         item.style.padding = "8px";
         item.style.marginBottom = "8px";
-        item.style.backgroundColor = "white";
-        item.innerHTML = `
-          <strong>${entry.date}</strong><br>
-          <pre>${JSON.stringify(entry.result, null, 2)}</pre>
-        `;
+        item.style.cursor = "pointer";
+
+        const date = document.createElement("div");
+        date.innerHTML = `<strong>${entry.date}</strong> <span style='float:right;'>&#9660;</span>`;
+        item.appendChild(date);
+
+        const arrow = date.querySelector("span");
+        item.addEventListener("click", () => {
+          details.style.display =
+            details.style.display === "none" ? "block" : "none";
+          arrow.innerHTML =
+            details.style.display === "none" ? "&#9660;" : "&#9650;";
+        });
+
+        const details = document.createElement("div");
+        details.style.display = "none";
+        details.style.marginTop = "8px";
+        details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
+          entry.result,
+          null,
+          2
+        )}</pre>`;
+
+        item.appendChild(details);
+
         history_div.appendChild(item);
       });
     });
