@@ -118,3 +118,27 @@ body.dark #history {
   border-color: #333;
   box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
 }
+
+.analysis-delete-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 10px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.analysis-delete-button:hover {
+  background-color: #c82333;
+}
+
+body.dark .analysis-delete-button {
+  background-color: #e53935;
+}
+
+body.dark .analysis-delete-button:hover {
+  background-color: #b71c1c;
+}
