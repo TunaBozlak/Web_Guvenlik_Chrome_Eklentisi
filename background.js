@@ -49,11 +49,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       const headers = latestHeaders[message.url] || {};
       const securityHeaders = {
-        "Content-Security-Policy":
-          headers["content-security-policy"] || "Missing",
-        "X-Frame-Options": headers["x-frame-options"] || "Missing",
-        "Strict-Transport-Security":
-          headers["strict-transport-security"] || "Missing",
+        "Content-Security-Policy": headers["content-security-policy"],
+        "X-Frame-Options": headers["x-frame-options"],
+        "Strict-Transport-Security": headers["strict-transport-security"],
       };
 
       const malwareResult = await scanUrlWithVirusTotal(message.url);
@@ -61,7 +59,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const analysisResult = {
         url: message.url,
         securityHeaders,
-        malwareScan: malwareResult,
+        malwareScan: malwareResult, //{ state: "geçici" },
       };
       sendResponse(analysisResult);
     })();

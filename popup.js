@@ -12,6 +12,85 @@ document.addEventListener("DOMContentLoaded", () => {
   const start_date_input = document.getElementById("start_date");
   const end_date_input = document.getElementById("end_date");
 
+  const analyzeSecurityStatus = (response, site_url) => {
+    const statuses = {};
+
+    statuses["HTTPS"] = site_url.startsWith("https://") ? "safe" : "danger";
+
+    const headers = response.securityHeaders || {};
+    const header_keys = Object.keys(headers).map((k) => k.toLowerCase());
+    statuses["Strict-Transport-Security"] = header_keys.includes(
+      "strict-transport-security"
+    )
+      ? "safe"
+      : "warning";
+
+    statuses["Content-Security-Policy"] = header_keys.includes(
+      "content-security-policy"
+    )
+      ? "safe"
+      : "warning";
+
+    statuses["X-Frame-Options"] = header_keys.includes("x-frame-options")
+      ? "safe"
+      : "danger";
+
+    const virus_total = response.malwareScan || {};
+    const scans = virus_total.scans || {};
+    const detected_count = Object.values(scans).filter(
+      (scan) => scan.detected === true
+    );
+    if (detected_count.length === 0) {
+      statuses["Virustotal"] = "safe";
+    } else if (detected_count.length <= 5) {
+      statuses["Virustotal"] = "warning";
+    } else {
+      statuses["Virustotal"] = "danger";
+    }
+
+    const cookies = response.cookies || [];
+    const insecure_cookies = cookies.filter(
+      (cookie) => !cookie.secure || !cookie.httpOnly
+    );
+    statuses["Çerez Güvenliği"] =
+      insecure_cookies.length === 0 ? "safe" : "warning";
+
+    const riskyFunctions = response.riskyFunctions || [];
+    statuses["JavaScript Riskleri"] =
+      riskyFunctions.length === 0 ? "safe" : "danger";
+
+    return statuses;
+  };
+
+  const createSecurityCard = (title, status) => {
+    const card = document.createElement("div");
+    card.classList.add("security-card");
+
+    const icon = document.createElement("span");
+    icon.style.fontSize = "18px";
+
+    let color, iconSymbol;
+    if (status === "safe") {
+      color = "green";
+      iconSymbol = "🎉";
+    } else if (status === "warning") {
+      color = "orange";
+      iconSymbol = "⚠️";
+    } else {
+      color = "red";
+      iconSymbol = "💣";
+    }
+
+    card.style.borderColor = color;
+    card.style.color = color;
+
+    card.innerHTML = `<span>${title}</span>`;
+    icon.textContent = iconSymbol;
+
+    card.appendChild(icon);
+    return card;
+  };
+
   filter_button.addEventListener("click", () => {
     const start_date = new Date(start_date_input.value);
     const end_date = new Date(end_date_input.value);
@@ -102,6 +181,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         response.jsFiles = jsAnalysis[0].result.externalScripts;
         response.riskyFunctions = jsAnalysis[0].result.detectedRiskyFunctions;
+
+        //yeni
+        const statuses = analyzeSecurityStatus(response, site_url);
+        Object.entries(statuses).forEach(([title, status]) => {
+          const card = createSecurityCard(title, status);
+          results_div.appendChild(card);
+        });
 
         const item = document.createElement("div");
         item.style.border = "1px solid #ccc";
