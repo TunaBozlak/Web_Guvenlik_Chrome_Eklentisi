@@ -60,6 +60,49 @@ document.addEventListener("DOMContentLoaded", () => {
           url: site_url,
         });
 
+        const cookies = await chrome.cookies.getAll({ url: site_url });
+        response.cookies = cookies;
+
+        const jsAnalysis = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            const scripts = Array.from(document.scripts);
+            const inlineScripts = scripts
+              .filter((script) => !script.src)
+              .map((script) => script.textContent || "");
+
+            const riskyFunctions = [
+              "eval",
+              "document.write",
+              "Function",
+              "setTimeout",
+              "setInterval",
+            ];
+            const detectedRiskyFunctions = [];
+
+            inlineScripts.forEach((code) => {
+              riskyFunctions.forEach((func) => {
+                if (code.includes(func)) {
+                  if (!detectedRiskyFunctions.includes(func)) {
+                    detectedRiskyFunctions.push(func);
+                  }
+                }
+              });
+            });
+
+            const externalScripts = scripts
+              .map((script) => script.src)
+              .filter((src) => src);
+
+            return {
+              externalScripts,
+              detectedRiskyFunctions,
+            };
+          },
+        });
+        response.jsFiles = jsAnalysis[0].result.externalScripts;
+        response.riskyFunctions = jsAnalysis[0].result.detectedRiskyFunctions;
+
         const item = document.createElement("div");
         item.style.border = "1px solid #ccc";
         item.style.padding = "8px";
