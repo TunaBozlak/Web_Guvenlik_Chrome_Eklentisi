@@ -16,7 +16,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 );
 
 //virüs taraması için
-const api_key_virus =
+/*const api_key_virus =
   "d0a18002bf84e72e5b216335b9b9800ed6c7259992a14da9e58a345ba875cdbc";
 
 const scanUrlWithVirusTotal = async (url) => {
@@ -41,7 +41,7 @@ const scanUrlWithVirusTotal = async (url) => {
     throw new Error("Virustotal raporu alınamadı");
   }
   return reportData;
-};
+};*/
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "analyze") {
@@ -54,12 +54,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         "Strict-Transport-Security": headers["strict-transport-security"],
       };
 
-      const malwareResult = await scanUrlWithVirusTotal(message.url);
+      //const malwareResult = await scanUrlWithVirusTotal(message.url);
 
       const analysisResult = {
         url: message.url,
         securityHeaders,
-        malwareScan: malwareResult, //{ state: "geçici" },
+        malwareScan: { state: "geçici" }, //malwareResult
       };
       sendResponse(analysisResult);
     })();

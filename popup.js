@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const analyzeSecurityStatus = (response, site_url) => {
     const statuses = {};
 
-    statuses["HTTPS"] = site_url.startsWith("https://") ? "safe" : "danger";
+    statuses["HTTPS "] = site_url.startsWith("https://") ? "safe" : "danger";
 
     const headers = response.securityHeaders || {};
     const header_keys = Object.keys(headers).map((k) => k.toLowerCase());
@@ -41,11 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
       (scan) => scan.detected === true
     );
     if (detected_count.length === 0) {
-      statuses["Virustotal"] = "safe";
+      statuses["Virustotal "] = "safe";
     } else if (detected_count.length <= 5) {
-      statuses["Virustotal"] = "warning";
+      statuses["Virustotal "] = "warning";
     } else {
-      statuses["Virustotal"] = "danger";
+      statuses["Virustotal "] = "danger";
     }
 
     const cookies = response.cookies || [];
@@ -89,6 +89,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
     card.appendChild(icon);
     return card;
+  };
+
+  const calculateSecurityScore = (statues) => {
+    const points = {
+      "HTTPS ": 15,
+      "Strict-Transport-Security": 10,
+      "Content-Security-Policy": 10,
+      "X-Frame-Options": 10,
+      "Çerez Güvenliği": 10,
+      "JavaScript Riskleri": 15,
+      "Virustotal ": 30,
+    };
+    let total_score = 0;
+    let max_score = 0;
+
+    for (const key in points) {
+      const point = points[key];
+      max_score += point;
+
+      const status = statues[key] || "danger";
+
+      if (status === "safe") {
+        total_score += point;
+      } else if (status === "warning") {
+        total_score += point / 2;
+      }
+    }
+    return Math.round((total_score / max_score) * 100);
   };
 
   filter_button.addEventListener("click", () => {
@@ -182,12 +210,28 @@ document.addEventListener("DOMContentLoaded", () => {
         response.jsFiles = jsAnalysis[0].result.externalScripts;
         response.riskyFunctions = jsAnalysis[0].result.detectedRiskyFunctions;
 
-        //yeni
         const statuses = analyzeSecurityStatus(response, site_url);
         Object.entries(statuses).forEach(([title, status]) => {
           const card = createSecurityCard(title, status);
           results_div.appendChild(card);
         });
+
+        const score = calculateSecurityScore(statuses);
+        const score_div = document.createElement("div");
+        score_div.innerHTML = `
+  <strong>Genel Güvenlik Skoru:</strong> ${score} / 100
+  <div style="background: #eee; border-radius: 8px; overflow: hidden; width: 100%; height: 20px; margin-top: 4px;">
+    <div style="
+      width: ${score}%;
+      height: 100%;
+      background: ${score >= 80 ? "green" : score >= 50 ? "orange" : "red"};
+      transition: width 0.3s ease;
+    "></div>
+  </div>
+`;
+        score_div.style.marginBottom = "10px";
+
+        results_div.prepend(score_div);
 
         const item = document.createElement("div");
         item.style.border = "1px solid #ccc";
