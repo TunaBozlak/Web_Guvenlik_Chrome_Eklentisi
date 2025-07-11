@@ -40,13 +40,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const detected_count = Object.values(scans).filter(
       (scan) => scan.detected === true
     );
-    if (detected_count.length === 0) {
-      statuses["Virustotal "] = "safe";
-    } else if (detected_count.length <= 5) {
-      statuses["Virustotal "] = "warning";
-    } else {
-      statuses["Virustotal "] = "danger";
-    }
+    statuses["Virustotal "] =
+      detected_count.length === 0
+        ? "safe"
+        : detected_count.length <= 5
+        ? "warning"
+        : "danger";
 
     const cookies = response.cookies || [];
     const insecure_cookies = cookies.filter(
