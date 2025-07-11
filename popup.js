@@ -11,6 +11,35 @@ document.addEventListener("DOMContentLoaded", () => {
   const reset_filter_button = document.getElementById("reset_filter_button");
   const start_date_input = document.getElementById("start_date");
   const end_date_input = document.getElementById("end_date");
+  const performance_button = document.getElementById("performance_button");
+
+  const pageSpeedScores = async (site_url) => {
+    const api_key = "AIzaSyCH6gmGxIBMVpcqSJz_iM2vewjAm5QFQ1w";
+    const api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
+      site_url
+    )}&key=${api_key}&category=performance&category=accessibility&category=best-practices&category=seo`;
+
+    try {
+      const response = await fetch(api_url);
+      const data = await response.json();
+
+      if (!data.lighthouseResult || !data.lighthouseResult.categories) {
+        console.error("PageSpeed API'dan beklenen veri gelmedi:", data);
+        return null;
+      }
+
+      const categories = data.lighthouseResult.categories;
+      return {
+        performance: Math.round(categories.performance.score * 100),
+        accessibility: Math.round(categories.accessibility.score * 100),
+        bestPractices: Math.round(categories["best-practices"].score * 100),
+        seo: Math.round(categories.seo.score * 100),
+      };
+    } catch (error) {
+      console.error("PageSpeed API hatası:", error);
+      return null;
+    }
+  };
 
   const analyzeSecurityStatus = (response, site_url) => {
     const statuses = {};
@@ -61,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return statuses;
   };
 
-  const createSecurityCard = (title, status) => {
+  const createCard = (title, status) => {
     const card = document.createElement("div");
     card.classList.add("security-card");
 
@@ -149,8 +178,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  analysis_button.addEventListener("click", async () => {
+  const performSecurityAnalysis = async () => {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    results_div.innerHTML = "";
+    explanation_div.innerText = "";
+    download_button.disabled = true;
+    ai_button.disabled = true;
 
     chrome.scripting.executeScript(
       {
@@ -211,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const statuses = analyzeSecurityStatus(response, site_url);
         Object.entries(statuses).forEach(([title, status]) => {
-          const card = createSecurityCard(title, status);
+          const card = createCard(title, status);
           results_div.appendChild(card);
         });
 
@@ -229,7 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </div>
 `;
         score_div.style.marginBottom = "10px";
-
         results_div.prepend(score_div);
 
         const item = document.createElement("div");
@@ -260,13 +292,12 @@ document.addEventListener("DOMContentLoaded", () => {
           2
         )}</pre>`;
         item.appendChild(details);
-
         results_div.appendChild(item);
 
         const domain = new URL(site_url).origin;
         download_button.disabled = false;
         ai_button.disabled = false;
-        saveAnalysisHistory({ site: domain, ...response });
+        saveAnalysisHistory({ site: domain, type: "security", ...response });
 
         download_button.onclick = () => {
           const { jsPDF } = window.jspdf;
@@ -343,7 +374,189 @@ document.addEventListener("DOMContentLoaded", () => {
         };
       }
     );
-  });
+  };
+
+  const performPerformanceTest = async () => {
+    results_div.innerHTML = "";
+    explanation_div.innerText = "";
+    download_button.disabled = true;
+    ai_button.disabled = true;
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id },
+        function: () => window.location.href,
+      },
+      async (results) => {
+        const site_url = results[0].result;
+        console.log("Performans testi yapılan site:", site_url);
+
+        const page_speed_scores = await pageSpeedScores(site_url);
+        if (!page_speed_scores) {
+          results_div.innerHTML = "<p>Performans skorları alınamadı.</p>";
+          return;
+        }
+
+        const performance_statuses = {};
+        const map_status = (score) => {
+          if (score >= 90) return "safe";
+          if (score >= 50) return "warning";
+          return "danger";
+        };
+
+        performance_statuses["Performans"] = map_status(
+          page_speed_scores.performance
+        );
+        performance_statuses["Erişilebilirlik"] = map_status(
+          page_speed_scores.accessibility
+        );
+        performance_statuses["En İyi Uygulamalar"] = map_status(
+          page_speed_scores.bestPractices
+        );
+        performance_statuses["SEO"] = map_status(page_speed_scores.seo);
+
+        Object.entries(performance_statuses).forEach(([title, status]) => {
+          const card = createCard(title, status);
+          results_div.appendChild(card);
+        });
+
+        const score_div = document.createElement("div");
+        score_div.innerHTML = `
+          <strong>Performans Skorları:</strong><br>
+          Performans: ${page_speed_scores.performance}<br>
+          Erişilebilirlik: ${page_speed_scores.accessibility}<br>
+          En İyi Uygulamalar: ${page_speed_scores.bestPractices}<br>
+          SEO: ${page_speed_scores.seo}
+        `;
+        score_div.style.marginBottom = "10px";
+        results_div.prepend(score_div);
+
+        const item = document.createElement("div");
+        item.style.border = "1px solid #ccc";
+        item.style.padding = "8px";
+        item.style.marginTop = "8px";
+        item.style.cursor = "pointer";
+
+        const title = document.createElement("div");
+        title.innerHTML =
+          "<strong>Performans Raporu</strong> <span style='float:right;'>&#9660;</span>";
+        item.appendChild(title);
+
+        const arrow = title.querySelector("span");
+        item.addEventListener("click", () => {
+          details.style.display =
+            details.style.display === "none" ? "block" : "none";
+          arrow.innerHTML =
+            details.style.display === "none" ? "&#9660;" : "&#9650;";
+        });
+
+        const details = document.createElement("div");
+        details.style.display = "none";
+        details.style.marginTop = "8px";
+        details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
+          page_speed_scores,
+          null,
+          2
+        )}</pre>`;
+
+        item.appendChild(details);
+        results_div.appendChild(item);
+        const domain = new URL(site_url).origin;
+        download_button.disabled = false;
+        ai_button.disabled = false;
+
+        saveAnalysisHistory({
+          site: domain,
+          type: "performance",
+          pageSpeed: page_speed_scores,
+        });
+
+        download_button.onclick = () => {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(22);
+          doc.text(
+            "Web Performans Analiz Raporu",
+            105,
+            20,
+            null,
+            null,
+            "center"
+          );
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(12);
+          doc.setTextColor(100);
+          doc.text(`Analiz edilen: ${site_url}`, 105, 30, null, null, "center");
+          doc.line(10, 38, 200, 38);
+
+          doc.setTextColor(0);
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text("Performans Sonuçlari:", 10, 50);
+
+          doc.setFontSize(10);
+          doc.setFont("courier", "normal");
+
+          const performanceText = JSON.stringify(page_speed_scores, null, 2);
+          const splitText = doc.splitTextToSize(performanceText, 190);
+
+          let y = 60;
+          const lineHeight = 5;
+          const pageHeight = doc.internal.pageSize.height;
+          const margin = 10;
+
+          splitText.forEach((line) => {
+            if (y + lineHeight > pageHeight - margin) {
+              doc.addPage();
+              y = 10;
+              y = margin;
+              doc.setFontSize(10);
+              doc.setFont("courier", "normal");
+            }
+            doc.text(line, 10, y);
+            y += lineHeight;
+          });
+
+          const pageCount = doc.internal.getNumberOfPages();
+          for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.setTextColor(150);
+            doc.text(
+              `${i}.Sayfa`,
+              doc.internal.pageSize.width - 30,
+              doc.internal.pageSize.height - 10,
+              null,
+              null,
+              "right"
+            );
+            doc.text(
+              `Olusturulma tarihi: ${new Date().toLocaleDateString()}`,
+              10,
+              doc.internal.pageSize.height - 10
+            );
+          }
+
+          doc.save("web_performans.pdf");
+        };
+
+        ai_button.onclick = () => {
+          chrome.runtime.sendMessage(
+            { action: "explain_performance", data: page_speed_scores },
+            (explanation) => {
+              explanation_div.innerText = explanation;
+            }
+          );
+        };
+      }
+    );
+  };
+
+  analysis_button.addEventListener("click", performSecurityAnalysis);
+  performance_button.addEventListener("click", performPerformanceTest);
 
   const saveAnalysisHistory = (result) => {
     chrome.storage.local.get("history", (data) => {
@@ -392,10 +605,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const leftPart = document.createElement("div");
         const domain = entry.result?.site || "Bilinmeyen Site";
+        const type =
+          entry.result?.type === "performance"
+            ? " (Performans)"
+            : " (Güvenlik)";
         leftPart.innerHTML = `
-    <div style="font-weight: bold;">${domain}</div>
-    <div style="font-size: 12px; color: gray;">${entry.date}</div>
-  `;
+          <div style="font-weight: bold;">${domain}${type}</div>
+          <div style="font-size: 12px; color: gray;">${entry.date}</div>
+        `;
 
         const rightPart = document.createElement("div");
         rightPart.style.display = "flex";
