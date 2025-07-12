@@ -545,7 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         ai_button.onclick = () => {
           chrome.runtime.sendMessage(
-            { action: "explain_performance", data: page_speed_scores },
+            { action: "explain", data: page_speed_scores },
             (explanation) => {
               explanation_div.innerText = explanation;
             }
