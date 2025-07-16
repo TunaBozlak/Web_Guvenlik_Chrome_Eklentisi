@@ -258,6 +258,220 @@ document.addEventListener("DOMContentLoaded", () => {
         response.jsFiles = jsAnalysis[0].result.externalScripts;
         response.riskyFunctions = jsAnalysis[0].result.detectedRiskyFunctions;
 
+        const frameworkAnalysis = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            const detectedFrameworks = [];
+            const scriptSrcs = Array.from(document.scripts)
+              .map((s) => s.src || "")
+              .filter(Boolean);
+            const linkHrefs = Array.from(
+              document.querySelectorAll("link[href]")
+            ).map((l) => l.href);
+            const fetchUrls = [];
+            const classList = Array.from(
+              document.querySelectorAll("[class]")
+            ).flatMap((el) => Array.from(el.classList));
+            const originalFetch = window.fetch;
+            if (originalFetch) {
+              window.fetch = function (...args) {
+                try {
+                  fetchUrls.push(args[0]);
+                } catch {}
+                return originalFetch.apply(this, args);
+              };
+            }
+            const devtoolHooks = {
+              React: !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
+              "Vue.js": !!window.__VUE_DEVTOOLS_GLOBAL_HOOK__,
+            };
+            const commentHints = {
+              React: [/react/i],
+              "Vue.js": [/vue/i, /v-if/, /v-for/],
+            };
+            const scanCommentNodes = () => {
+              const iterator = document.createNodeIterator(
+                document,
+                NodeFilter.SHOW_COMMENT,
+                null,
+                false
+              );
+              let currentNode;
+              const found = {};
+              while ((currentNode = iterator.nextNode())) {
+                const text = currentNode.textContent;
+                for (const [fw, patterns] of Object.entries(commentHints)) {
+                  for (const pattern of patterns) {
+                    if (pattern.test(text)) {
+                      found[fw] = true;
+                    }
+                  }
+                }
+              }
+              return found;
+            };
+            const commentBased = scanCommentNodes();
+            const knownFrameworks = [
+              {
+                name: "React",
+                test: () =>
+                  window.React ||
+                  !!document.querySelector("[data-reactroot], #root, #app") ||
+                  devtoolHooks["React"] ||
+                  commentBased["React"] ||
+                  classList.some((c) => c.startsWith("jsx-")) ||
+                  scriptSrcs.some((src) => /react/i.test(src)),
+              },
+              {
+                name: "Next.js",
+                test: () =>
+                  !!window.__NEXT_DATA__ ||
+                  scriptSrcs.some((src) => src.includes("_next")) ||
+                  fetchUrls.some((url) => url.includes("_next/data")),
+              },
+              {
+                name: "Angular",
+                test: () =>
+                  window.angular ||
+                  !!document.querySelector(
+                    "[ng-app], [data-ng-app], .ng-scope"
+                  ) ||
+                  scriptSrcs.some((src) => /angular/i.test(src)),
+              },
+              {
+                name: "Vue.js",
+                test: () =>
+                  window.Vue ||
+                  !!document.querySelector("[data-v-app], #app") ||
+                  devtoolHooks["Vue.js"] ||
+                  commentBased["Vue.js"] ||
+                  classList.some((c) => c.startsWith("v-")) ||
+                  scriptSrcs.some((src) => /vue/i.test(src)),
+              },
+              {
+                name: "Nuxt.js",
+                test: () =>
+                  scriptSrcs.some((src) => src.includes("_nuxt")) ||
+                  !!window.__NUXT__ ||
+                  fetchUrls.some((url) => url.includes("_nuxt")),
+              },
+              {
+                name: "jQuery",
+                test: () =>
+                  window.jQuery ||
+                  typeof $ === "function" ||
+                  scriptSrcs.some((src) => /jquery/i.test(src)),
+              },
+              {
+                name: "Svelte",
+                test: () =>
+                  !!document.querySelector("[data-svelte-h]") ||
+                  classList.some((c) => c.startsWith("svelte-")) ||
+                  scriptSrcs.some((src) => /svelte/i.test(src)),
+              },
+              {
+                name: "WordPress",
+                test: () => {
+                  const meta = document.querySelector('meta[name="generator"]');
+                  const hasMeta =
+                    meta && meta.content.toLowerCase().includes("wordpress");
+                  const hasPaths = [...scriptSrcs, ...linkHrefs].some((src) =>
+                    /wp-(content|includes)/i.test(src)
+                  );
+                  const bodyClass = document.body.className || "";
+                  const hasClass =
+                    bodyClass.includes("wp-") ||
+                    classList.some((c) => c.startsWith("wp-"));
+                  const hasRestApi = fetchUrls.some((url) =>
+                    url.includes("/wp-json/")
+                  );
+                  return hasMeta || hasPaths || hasClass || hasRestApi;
+                },
+              },
+            ];
+            knownFrameworks.forEach(({ name, test }) => {
+              try {
+                if (test() && !detectedFrameworks.includes(name)) {
+                  detectedFrameworks.push(name);
+                }
+              } catch (err) {
+                console.warn(`Framework tespit hatası: ${name}`, err);
+              }
+            });
+            return { detectedFrameworks };
+          },
+        });
+
+        const uiResult = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            const classList = Array.from(
+              document.querySelectorAll("[class]")
+            ).flatMap((el) => Array.from(el.classList));
+            const detectedUIFrameworks = [];
+            const uiFrameworks = [
+              {
+                name: "Tailwind CSS",
+                test: () =>
+                  classList.filter((c) =>
+                    /^(text|bg|p|m|rounded|shadow|flex|grid|items|justify|w-|h-)/.test(
+                      c
+                    )
+                  ).length >= 5,
+              },
+              {
+                name: "Bootstrap",
+                test: () =>
+                  classList.some((c) =>
+                    /^(container|row|col|btn|navbar|alert|card)/.test(c)
+                  ),
+              },
+              {
+                name: "Material UI (MUI)",
+                test: () => classList.some((c) => /^Mui[A-Z]/.test(c)),
+              },
+              {
+                name: "Bulma",
+                test: () =>
+                  classList.some((c) =>
+                    /^(columns|column|notification|is-)/.test(c)
+                  ),
+              },
+              {
+                name: "Foundation",
+                test: () =>
+                  classList.some((c) =>
+                    /^(grid-|button-group|callout)/.test(c)
+                  ),
+              },
+              {
+                name: "Ant Design",
+                test: () => classList.some((c) => /^ant-/.test(c)),
+              },
+            ];
+            uiFrameworks.forEach(({ name, test }) => {
+              try {
+                if (test() && !detectedUIFrameworks.includes(name)) {
+                  detectedUIFrameworks.push(name);
+                }
+              } catch (err) {
+                console.warn(`UI framework tespiti hatası: ${name}`, err);
+              }
+            });
+            return { detectedUIFrameworks };
+          },
+        });
+
+        response.detectedFrameworks =
+          frameworkAnalysis[0].result.detectedFrameworks;
+        console.log("Tespit edilen Çerçeveler", response.detectedFrameworks);
+
+        response.detectedUIFrameworks = uiResult[0].result.detectedUIFrameworks;
+        console.log(
+          "Tespit edilen CSS Çerçeveleri",
+          response.detectedUIFrameworks
+        );
+
         const apiUrls = jsAnalysis[0].result.apiUrls;
         console.log("Bulunan API endpoint'leri:", apiUrls);
 
@@ -331,6 +545,63 @@ document.addEventListener("DOMContentLoaded", () => {
           noApiText.style.color = "#555";
           noApiText.style.marginTop = "10px";
           results_div.appendChild(noApiText);
+        }
+
+        const frameworkHeader = document.createElement("h3");
+        frameworkHeader.textContent = "Tespit Edilen Teknolojiler";
+        frameworkHeader.style.marginTop = "20px";
+        results_div.appendChild(frameworkHeader);
+
+        if (
+          response.detectedFrameworks &&
+          response.detectedFrameworks.length > 0
+        ) {
+          const ul = document.createElement("ul");
+          ul.style.listStyleType = "none";
+          ul.style.paddingLeft = "0";
+          response.detectedFrameworks.forEach((framework) => {
+            const li = document.createElement("li");
+            li.style.marginBottom = "5px";
+            li.style.fontSize = "1.1em";
+            li.innerHTML = `✨ <span style="font-weight: bold; color: #4CAF50;">${framework}</span>`;
+            ul.appendChild(li);
+          });
+          results_div.appendChild(ul);
+        } else {
+          const noFrameworkText = document.createElement("p");
+          noFrameworkText.textContent =
+            "Bu sitede belirgin bir JavaScript çerçevesi tespit edilemedi.";
+          noFrameworkText.style.color = "#555";
+          noFrameworkText.style.marginTop = "10px";
+          results_div.appendChild(noFrameworkText);
+        }
+
+        const uiHeader = document.createElement("h3");
+        uiHeader.textContent = "Tespit Edilen UI Kit ve CSS Framework'leri";
+        uiHeader.style.marginTop = "20px";
+        results_div.appendChild(uiHeader);
+        if (
+          response.detectedUIFrameworks &&
+          response.detectedUIFrameworks.length > 0
+        ) {
+          const ul = document.createElement("ul");
+          ul.style.listStyleType = "none";
+          ul.style.paddingLeft = "0";
+          response.detectedUIFrameworks.forEach((kit) => {
+            const li = document.createElement("li");
+            li.style.marginBottom = "5px";
+            li.style.fontSize = "1.1em";
+            li.innerHTML = `🎨 <span style="font-weight: bold; color: #007bff;">${kit}</span>`;
+            ul.appendChild(li);
+          });
+          results_div.appendChild(ul);
+        } else {
+          const noUiText = document.createElement("p");
+          noUiText.textContent =
+            "Bu sitede yaygın bir UI kütüphanesi tespit edilemedi.";
+          noUiText.style.color = "#555";
+          noUiText.style.marginTop = "10px";
+          results_div.appendChild(noUiText);
         }
 
         const score = calculateSecurityScore(statuses);
