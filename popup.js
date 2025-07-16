@@ -233,20 +233,107 @@ document.addEventListener("DOMContentLoaded", () => {
               .map((script) => script.src)
               .filter((src) => src);
 
+            const apiUrls = [];
+            document.querySelectorAll("a[href]").forEach((el) => {
+              const href = el.href;
+              if (href.includes("/api/")) apiUrls.push(href);
+            });
+
+            const allScriptContent = inlineScripts.join("\n");
+            const fetchMatches = allScriptContent.match(
+              /["'`](https?:\/\/[^"'`]*\/api\/[^"'`]*)["'`]/gi
+            );
+            if (fetchMatches) {
+              fetchMatches.forEach((url) => {
+                const cleanUrl = url.replace(/^['"`]|['"`]$/g, "");
+                if (!apiUrls.includes(cleanUrl)) apiUrls.push(cleanUrl);
+              });
+            }
+
             return {
               externalScripts,
               detectedRiskyFunctions,
+              apiUrls,
             };
           },
         });
         response.jsFiles = jsAnalysis[0].result.externalScripts;
         response.riskyFunctions = jsAnalysis[0].result.detectedRiskyFunctions;
 
+        const apiUrls = jsAnalysis[0].result.apiUrls;
+        console.log("Bulunan API endpoint'leri:", apiUrls);
+
+        if (apiUrls.length > 0) {
+          const apiAnalysis = await chrome.runtime.sendMessage({
+            action: "analyzeApiEndpoints",
+            endpoints: apiUrls,
+          });
+
+          response.apiSecurityAnalysis = apiAnalysis.apiSecurity;
+        }
+
         const statuses = analyzeSecurityStatus(response, site_url);
         Object.entries(statuses).forEach(([title, status]) => {
           const card = createCard(title, status);
           results_div.appendChild(card);
         });
+
+        const apiHeader = document.createElement("h3");
+        apiHeader.textContent = "API Endpoint Güvenlik Analizi";
+        apiHeader.style.marginTop = "20px";
+        results_div.appendChild(apiHeader);
+        if (
+          response.apiSecurityAnalysis &&
+          Object.keys(response.apiSecurityAnalysis).length > 0
+        ) {
+          Object.entries(response.apiSecurityAnalysis).forEach(
+            ([endpoint, analysis]) => {
+              const card = document.createElement("div");
+              card.classList.add("api-card");
+              card.style.fontFamily =
+                "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+              const title = document.createElement("div");
+              title.innerHTML = `<strong style="font-size: 1.1em; color: #333;">Endpoint:</strong> 
+              <span style="color: #007acc;">${endpoint}</span>`;
+              title.style.marginBottom = "12px";
+              card.appendChild(title);
+              const analysisList = document.createElement("ul");
+              analysisList.classList.add("api-ul");
+              Object.entries(analysis).forEach(([key, value]) => {
+                const li = document.createElement("li");
+                li.style.marginBottom = "6px";
+                if (typeof value === "object" && value !== null) {
+                  li.innerHTML =
+                    `<strong style="color: #222;">${key}:</strong>
+                    <ul style="margin-top: 6px; margin-left: 18px; padding-left: 0; list-style-type: disc;">` +
+                    Object.entries(value)
+                      .map(
+                        ([subKey, subVal]) =>
+                          `<li style="list-style-type: circle; margin-bottom: 4px; color: #555;">${subKey}: 
+                        <span style="font-weight: 600;">${
+                          subVal ?? "Yok"
+                        }</span></li>`
+                      )
+                      .join("") +
+                    `</ul>`;
+                } else {
+                  li.innerHTML = `<strong style="color: #222;">${key}:</strong> 
+                  <span style="font-weight: 600;">${value}</span>`;
+                }
+                analysisList.appendChild(li);
+              });
+              card.appendChild(analysisList);
+              results_div.appendChild(card);
+            }
+          );
+        } else {
+          const noApiText = document.createElement("p");
+          noApiText.textContent =
+            "Bu sitede analiz edilebilecek API endpointi bulunamadı.";
+          noApiText.style.color = "#555";
+          noApiText.style.marginTop = "10px";
+          results_div.appendChild(noApiText);
+        }
 
         const score = calculateSecurityScore(statuses);
         const score_div = document.createElement("div");

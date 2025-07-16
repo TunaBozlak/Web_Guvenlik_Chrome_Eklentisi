@@ -79,4 +79,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })();
     return true;
   }
+
+  if (message.action === "analyzeApiEndpoints") {
+    console.log("API endpoint analizi başlatıldı:", message.endpoints);
+    const results = {};
+    const analyzeEndpoint = async (url) => {
+      try {
+        const response = await fetch(url, {
+          method: "OPTIONS",
+          mode: "cors",
+        });
+        const corsHeaders = {
+          "Access-Control-Allow-Origin": response.headers.get(
+            "access-control-allow-origin"
+          ),
+          "Access-Control-Allow-Methods": response.headers.get(
+            "access-control-allow-methods"
+          ),
+          "Access-Control-Allow-Headers": response.headers.get(
+            "access-control-allow-headers"
+          ),
+        };
+        const authHeader = response.headers.get("www-authenticate");
+        const rateLimitHeaders = {
+          "X-RateLimit-Limit": response.headers.get("x-ratelimit-limit"),
+          "X-RateLimit-Remaining": response.headers.get(
+            "x-ratelimit-remaining"
+          ),
+          "Retry-After": response.headers.get("retry-after"),
+        };
+        results[url] = {
+          cors: corsHeaders,
+          authRequired: !!authHeader,
+          rateLimit: rateLimitHeaders,
+          status: response.status,
+        };
+      } catch (error) {
+        results[url] = {
+          error: error.message,
+        };
+      }
+    };
+    Promise.all(message.endpoints.map(analyzeEndpoint)).then(() => {
+      sendResponse({ apiSecurity: results });
+    });
+    return true;
+  }
 });

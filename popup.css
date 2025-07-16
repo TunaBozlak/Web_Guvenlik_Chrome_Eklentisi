@@ -229,3 +229,19 @@ body.dark #filter button:active {
   align-items: center;
   font-weight: bold;
 }
+
+.api-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 15px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.api-ul {
+  padding-left: 22px;
+  color: #444;
+  font-size: 0.95em;
+  line-height: 1.4;
+}
