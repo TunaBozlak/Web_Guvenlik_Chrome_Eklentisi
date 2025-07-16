@@ -163,9 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
     displayHistory();
   });
 
-  download_button.disabled = true;
-  ai_button.disabled = true;
-
   theme_button.addEventListener("click", async () => {
     document.body.classList.toggle("dark");
     const is_dark = document.body.classList.contains("dark");
@@ -352,10 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
         results_div.prepend(score_div);
 
         const item = document.createElement("div");
-        item.style.border = "1px solid #ccc";
-        item.style.padding = "8px";
-        item.style.marginTop = "8px";
-        item.style.cursor = "pointer";
+        item.classList.add("item");
 
         const title = document.createElement("div");
         title.innerHTML =
@@ -519,10 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
         results_div.prepend(score_div);
 
         const item = document.createElement("div");
-        item.style.border = "1px solid #ccc";
-        item.style.padding = "8px";
-        item.style.marginTop = "8px";
-        item.style.cursor = "pointer";
+        item.classList.add("item");
 
         const title = document.createElement("div");
         title.innerHTML =
@@ -653,10 +644,6 @@ document.addEventListener("DOMContentLoaded", () => {
         result,
       });
 
-      if (history.length > 20) {
-        history.pop();
-      }
-
       chrome.storage.local.set({ history });
       displayHistory();
     });
@@ -680,10 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       filtered_history.forEach((entry, index) => {
         const item = document.createElement("div");
-        item.style.border = "1px solid #ccc";
-        item.style.padding = "8px";
-        item.style.marginBottom = "8px";
-        item.style.cursor = "pointer";
+        item.classList.add("item");
 
         const header = document.createElement("div");
         header.style.display = "flex";
