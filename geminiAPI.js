@@ -1,5 +1,7 @@
-const api_key = "AIzaSyAy2cOnh1J1g0rHeueD0Fs2LP2uQ_5SpfE";
-const getAIExplanation = async (analysisData) => {
+import { API_KEY_GEMINI } from "./config.js";
+
+const api_key = API_KEY_GEMINI;
+export const getAIExplanation = async (analysisData) => {
   const api_url =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
     api_key;

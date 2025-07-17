@@ -1,3 +1,7 @@
+import { drawChart } from "./chart.js";
+import { pageSpeedScores } from "./performance.js";
+import { analyzeSecurityStatus, calculateSecurityScore } from "./security.js";
+
 document.addEventListener("DOMContentLoaded", () => {
   const theme_button = document.getElementById("change_theme");
   const analysis_button = document.getElementById("analysis_button");
@@ -12,84 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const start_date_input = document.getElementById("start_date");
   const end_date_input = document.getElementById("end_date");
   const performance_button = document.getElementById("performance_button");
-  const ctx = document.getElementById("chart").getContext("2d");
-
-  const pageSpeedScores = async (site_url) => {
-    const api_key = "AIzaSyCH6gmGxIBMVpcqSJz_iM2vewjAm5QFQ1w";
-    const api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
-      site_url
-    )}&key=${api_key}&category=performance&category=accessibility&category=best-practices&category=seo`;
-
-    try {
-      const response = await fetch(api_url);
-      const data = await response.json();
-
-      if (!data.lighthouseResult || !data.lighthouseResult.categories) {
-        console.error("PageSpeed API'dan beklenen veri gelmedi:", data);
-        return null;
-      }
-
-      const categories = data.lighthouseResult.categories;
-      return {
-        performance: Math.round(categories.performance.score * 100),
-        accessibility: Math.round(categories.accessibility.score * 100),
-        bestPractices: Math.round(categories["best-practices"].score * 100),
-        seo: Math.round(categories.seo.score * 100),
-      };
-    } catch (error) {
-      console.error("PageSpeed API hatası:", error);
-      return null;
-    }
-  };
-
-  const analyzeSecurityStatus = (response, site_url) => {
-    const statuses = {};
-
-    statuses["HTTPS "] = site_url.startsWith("https://") ? "safe" : "danger";
-
-    const headers = response.securityHeaders || {};
-    const header_keys = Object.keys(headers).map((k) => k.toLowerCase());
-    statuses["Strict-Transport-Security"] = header_keys.includes(
-      "strict-transport-security"
-    )
-      ? "safe"
-      : "warning";
-
-    statuses["Content-Security-Policy"] = header_keys.includes(
-      "content-security-policy"
-    )
-      ? "safe"
-      : "warning";
-
-    statuses["X-Frame-Options"] = header_keys.includes("x-frame-options")
-      ? "safe"
-      : "danger";
-
-    const virus_total = response.malwareScan || {};
-    const scans = virus_total.scans || {};
-    const detected_count = Object.values(scans).filter(
-      (scan) => scan.detected === true
-    );
-    statuses["Virustotal "] =
-      detected_count.length === 0
-        ? "safe"
-        : detected_count.length <= 5
-        ? "warning"
-        : "danger";
-
-    const cookies = response.cookies || [];
-    const insecure_cookies = cookies.filter(
-      (cookie) => !cookie.secure || !cookie.httpOnly
-    );
-    statuses["Çerez Güvenliği"] =
-      insecure_cookies.length === 0 ? "safe" : "warning";
-
-    const riskyFunctions = response.riskyFunctions || [];
-    statuses["JavaScript Riskleri"] =
-      riskyFunctions.length === 0 ? "safe" : "danger";
-
-    return statuses;
-  };
 
   const createCard = (title, status) => {
     const card = document.createElement("div");
@@ -118,34 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     card.appendChild(icon);
     return card;
-  };
-
-  const calculateSecurityScore = (statues) => {
-    const points = {
-      "HTTPS ": 15,
-      "Strict-Transport-Security": 10,
-      "Content-Security-Policy": 10,
-      "X-Frame-Options": 10,
-      "Çerez Güvenliği": 10,
-      "JavaScript Riskleri": 15,
-      "Virustotal ": 30,
-    };
-    let total_score = 0;
-    let max_score = 0;
-
-    for (const key in points) {
-      const point = points[key];
-      max_score += point;
-
-      const status = statues[key] || "danger";
-
-      if (status === "safe") {
-        total_score += point;
-      } else if (status === "warning") {
-        total_score += point / 2;
-      }
-    }
-    return Math.round((total_score / max_score) * 100);
   };
 
   filter_button.addEventListener("click", () => {
@@ -1041,96 +939,6 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Seçilen kayıt silindi");
         displayHistory();
       });
-    });
-  };
-
-  const drawChart = (trendData) => {
-    if (window.trendChartInstance) {
-      window.trendChartInstance.destroy();
-    }
-    const labels = [];
-    const performanceData = [];
-    const securityData = [];
-    trendData.forEach((entry) => {
-      const dateString = entry.date;
-      labels.push(dateString);
-      if (entry.result.type === "performance") {
-        const s = entry.result.pageSpeed;
-        const score = Math.round(
-          (s.performance + s.accessibility + s.bestPractices + s.seo) / 4
-        );
-        performanceData.push(score);
-        securityData.push(null);
-      } else {
-        const score = calculateSecurityScore(
-          analyzeSecurityStatus(entry.result, entry.result.site)
-        );
-        securityData.push(score);
-        performanceData.push(null);
-      }
-    });
-    window.trendChartInstance = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Performans Skoru",
-            data: performanceData,
-            borderColor: "blue",
-            backgroundColor: "rgba(0,0,255,0.1)",
-            borderWidth: 2,
-            stack: "Stack 0",
-          },
-          {
-            label: "     Güvenlik Skoru",
-            data: securityData,
-            borderColor: "green",
-            backgroundColor: "rgba(0,128,0,0.1)",
-            borderWidth: 2,
-            stack: "Stack 0",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        interaction: {
-          mode: "point",
-          intersect: true,
-        },
-        plugins: {
-          legend: {
-            labels: {
-              color: "#222",
-              font: { size: 13, weight: "bold" },
-            },
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                const index = context.dataIndex;
-                const score = context.raw;
-                const entry = trendData[index];
-                const site = entry?.result?.site || "Bilinmeyen Site";
-                const type =
-                  entry.result?.type === "performance"
-                    ? "Performans"
-                    : "Güvenlik";
-                return [`${type} Skoru: ${score}`, `${site}`];
-              },
-            },
-          },
-        },
-        scales: {
-          x: {
-            display: false,
-          },
-          y: {
-            beginAtZero: true,
-            max: 100,
-          },
-        },
-      },
     });
   };
 });
