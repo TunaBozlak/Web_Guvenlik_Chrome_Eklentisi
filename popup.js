@@ -151,8 +151,13 @@ document.addEventListener("DOMContentLoaded", () => {
   filter_button.addEventListener("click", () => {
     const start_date = new Date(start_date_input.value);
     const end_date = new Date(end_date_input.value);
+    end_date.setHours(23, 59, 59, 999);
     if (!start_date_input.value || !end_date_input.value) {
       alert("Lütfen tarih aralığı seçiniz");
+      return;
+    }
+    if (end_date < start_date) {
+      alert("Bitiş tarihi, başlangıç tarihinden küçük olamaz ");
       return;
     }
     displayHistory(start_date, end_date);
@@ -928,8 +933,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const history = data.history || [];
 
       const filtered_history = history.filter((entry) => {
-        if (!start_date || !end_date) return true;
-        const entry_date = new Date(entry.date);
+        if (!start_date || !end_date) {
+          return true;
+        }
+
+        const dateString = entry.date;
+        const [datePart, timePart] = dateString.split(" ");
+        const [day, month, year] = datePart.split(".").map(Number);
+        const [hour, minute, second] = timePart.split(":").map(Number);
+        const entry_date = new Date(year, month - 1, day, hour, minute, second);
+
+        if (isNaN(entry_date.getTime())) {
+          console.warn(
+            "Geçersiz tarih formatı algılandı (manuel parse sonrası):",
+            entry.date
+          );
+          return false;
+        }
         return entry_date >= start_date && entry_date <= end_date;
       });
 
