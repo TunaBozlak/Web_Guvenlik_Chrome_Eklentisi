@@ -5,17 +5,19 @@ import { analyzeSecurityStatus, calculateSecurityScore } from "./security.js";
 document.addEventListener("DOMContentLoaded", () => {
   const theme_button = document.getElementById("change_theme");
   const analysis_button = document.getElementById("analysis_button");
-  const results_div = document.getElementById("results");
   const download_button = document.getElementById("download_pdf");
   const ai_button = document.getElementById("ai_button");
   const history_div = document.getElementById("history");
   const clear_history_button = document.getElementById("delete_history");
-  const explanation_div = document.getElementById("explanation");
   const filter_button = document.getElementById("filter_button");
   const reset_filter_button = document.getElementById("reset_filter_button");
   const start_date_input = document.getElementById("start_date");
   const end_date_input = document.getElementById("end_date");
   const performance_button = document.getElementById("performance_button");
+  const loading = document.getElementById("loading");
+  const loading_explanation = document.getElementById("loading-explanation");
+  const results_content = document.getElementById("results-content");
+  const explanation_content = document.getElementById("explanation-content");
 
   const createCard = (title, status) => {
     const card = document.createElement("div");
@@ -81,10 +83,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const performSecurityAnalysis = async () => {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    results_div.innerHTML = "";
-    explanation_div.innerText = "";
+    results_content.innerHTML = "";
+    explanation_content.innerText = "";
     download_button.disabled = true;
     ai_button.disabled = true;
+
+    loading.style.display = "block";
 
     chrome.scripting.executeScript(
       {
@@ -388,15 +392,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const statuses = analyzeSecurityStatus(response, site_url);
+
+        loading.style.display = "none";
+
         Object.entries(statuses).forEach(([title, status]) => {
           const card = createCard(title, status);
-          results_div.appendChild(card);
+          results_content.appendChild(card);
         });
 
         const apiHeader = document.createElement("h3");
         apiHeader.textContent = "API Endpoint Güvenlik Analizi";
         apiHeader.style.marginTop = "20px";
-        results_div.appendChild(apiHeader);
+        results_content.appendChild(apiHeader);
         if (
           response.apiSecurityAnalysis &&
           Object.keys(response.apiSecurityAnalysis).length > 0
@@ -438,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 analysisList.appendChild(li);
               });
               card.appendChild(analysisList);
-              results_div.appendChild(card);
+              results_content.appendChild(card);
             }
           );
         } else {
@@ -447,13 +454,13 @@ document.addEventListener("DOMContentLoaded", () => {
             "Bu sitede analiz edilebilecek API endpointi bulunamadı.";
           noApiText.style.color = "#555";
           noApiText.style.marginTop = "10px";
-          results_div.appendChild(noApiText);
+          results_content.appendChild(noApiText);
         }
 
         const frameworkHeader = document.createElement("h3");
         frameworkHeader.textContent = "Tespit Edilen Teknolojiler";
         frameworkHeader.style.marginTop = "20px";
-        results_div.appendChild(frameworkHeader);
+        results_content.appendChild(frameworkHeader);
 
         if (
           response.detectedFrameworks &&
@@ -469,20 +476,20 @@ document.addEventListener("DOMContentLoaded", () => {
             li.innerHTML = `✨ <span style="font-weight: bold; color: #4CAF50;">${framework}</span>`;
             ul.appendChild(li);
           });
-          results_div.appendChild(ul);
+          results_content.appendChild(ul);
         } else {
           const noFrameworkText = document.createElement("p");
           noFrameworkText.textContent =
             "Bu sitede belirgin bir JavaScript çerçevesi tespit edilemedi.";
           noFrameworkText.style.color = "#555";
           noFrameworkText.style.marginTop = "10px";
-          results_div.appendChild(noFrameworkText);
+          results_content.appendChild(noFrameworkText);
         }
 
         const uiHeader = document.createElement("h3");
         uiHeader.textContent = "Tespit Edilen UI Kit ve CSS Framework'leri";
         uiHeader.style.marginTop = "20px";
-        results_div.appendChild(uiHeader);
+        results_content.appendChild(uiHeader);
         if (
           response.detectedUIFrameworks &&
           response.detectedUIFrameworks.length > 0
@@ -497,14 +504,14 @@ document.addEventListener("DOMContentLoaded", () => {
             li.innerHTML = `🎨 <span style="font-weight: bold; color: #007bff;">${kit}</span>`;
             ul.appendChild(li);
           });
-          results_div.appendChild(ul);
+          results_content.appendChild(ul);
         } else {
           const noUiText = document.createElement("p");
           noUiText.textContent =
             "Bu sitede yaygın bir UI kütüphanesi tespit edilemedi.";
           noUiText.style.color = "#555";
           noUiText.style.marginTop = "10px";
-          results_div.appendChild(noUiText);
+          results_content.appendChild(noUiText);
         }
 
         const score = calculateSecurityScore(statuses);
@@ -521,7 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </div>
 `;
         score_div.style.marginBottom = "10px";
-        results_div.prepend(score_div);
+        results_content.prepend(score_div);
 
         const item = document.createElement("div");
         item.classList.add("item");
@@ -548,7 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
           2
         )}</pre>`;
         item.appendChild(details);
-        results_div.appendChild(item);
+        results_content.appendChild(item);
 
         const domain = new URL(site_url).origin;
         download_button.disabled = false;
@@ -621,10 +628,13 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         ai_button.onclick = () => {
+          explanation_content.innerText = "";
+          loading_explanation.style.display = "block";
           chrome.runtime.sendMessage(
             { action: "explain", data: response },
             (explanation) => {
-              explanation_div.innerText = explanation;
+              explanation_content.innerText = explanation;
+              loading_explanation.style.display = "none";
             }
           );
         };
@@ -633,10 +643,13 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const performPerformanceTest = async () => {
-    results_div.innerHTML = "";
-    explanation_div.innerText = "";
+    results_content.innerHTML = "";
+    explanation_content.innerText = "";
     download_button.disabled = true;
     ai_button.disabled = true;
+
+    loading.style.display = "block";
+
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     chrome.scripting.executeScript(
       {
@@ -648,8 +661,11 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Performans testi yapılan site:", site_url);
 
         const page_speed_scores = await pageSpeedScores(site_url);
+
+        loading.style.display = "none";
+
         if (!page_speed_scores) {
-          results_div.innerHTML = "<p>Performans skorları alınamadı.</p>";
+          results_content.innerHTML = "<p>Performans skorları alınamadı.</p>";
           return;
         }
 
@@ -673,7 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         Object.entries(performance_statuses).forEach(([title, status]) => {
           const card = createCard(title, status);
-          results_div.appendChild(card);
+          results_content.appendChild(card);
         });
 
         const score_div = document.createElement("div");
@@ -685,7 +701,7 @@ document.addEventListener("DOMContentLoaded", () => {
           SEO: ${page_speed_scores.seo}
         `;
         score_div.style.marginBottom = "10px";
-        results_div.prepend(score_div);
+        results_content.prepend(score_div);
 
         const item = document.createElement("div");
         item.classList.add("item");
@@ -713,7 +729,7 @@ document.addEventListener("DOMContentLoaded", () => {
         )}</pre>`;
 
         item.appendChild(details);
-        results_div.appendChild(item);
+        results_content.appendChild(item);
 
         const domain = new URL(site_url).origin;
         download_button.disabled = false;
@@ -798,10 +814,13 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         ai_button.onclick = () => {
+          explanation_content.innerText = "";
+          loading_explanation.style.display = "block";
           chrome.runtime.sendMessage(
             { action: "explain", data: page_speed_scores },
             (explanation) => {
-              explanation_div.innerText = explanation;
+              explanation_content.innerText = explanation;
+              loading_explanation.style.display = "none";
             }
           );
         };

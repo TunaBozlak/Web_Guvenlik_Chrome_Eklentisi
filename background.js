@@ -1,5 +1,5 @@
 import { getAIExplanation } from "./geminiAPI.js";
-import { API_KEY_VIRUS } from "./config.js";
+//import { API_KEY_VIRUS } from "./config.js";
 
 let latestHeaders = {};
 chrome.webRequest.onHeadersReceived.addListener(
@@ -15,8 +15,7 @@ chrome.webRequest.onHeadersReceived.addListener(
   ["responseHeaders"]
 );
 
-const api_key_virus = API_KEY_VIRUS;
-
+/*const api_key_virus = API_KEY_VIRUS;
 const scanUrlWithVirusTotal = async (url) => {
   const scanUrl = `https://www.virustotal.com/vtapi/v2/url/scan`;
   const reportUrl = `https://www.virustotal.com/vtapi/v2/url/report`;
@@ -39,7 +38,7 @@ const scanUrlWithVirusTotal = async (url) => {
     throw new Error("Virustotal raporu alınamadı");
   }
   return reportData;
-};
+};*/
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "analyze") {
@@ -52,12 +51,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         "Strict-Transport-Security": headers["strict-transport-security"],
       };
 
-      const malwareResult = await scanUrlWithVirusTotal(message.url);
+      //const malwareResult = await scanUrlWithVirusTotal(message.url);
 
       const analysisResult = {
         url: message.url,
         securityHeaders,
-        malwareScan: malwareResult, //{ state: "geçici" },
+        malwareScan: { state: "geçici" }, //malwareResult,
       };
       sendResponse(analysisResult);
     })();

@@ -13,7 +13,16 @@
 
     <button id="analysis_button">Analiz Et</button>
     <button id="performance_button">Performans Testi</button>
-    <div id="results"></div>
+
+    <div id="results">
+      <div id="loading" style="display: none">
+        <div class="loading">
+          <div class="loader"></div>
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+      <div id="results-content"></div>
+    </div>
 
     <canvas
       id="chart"
@@ -21,7 +30,16 @@
     ></canvas>
 
     <button id="ai_button" disabled>AI Açıklamaları</button>
-    <div id="explanation"></div>
+
+    <div id="explanation">
+      <div id="loading-explanation" style="display: none">
+        <div class="loading">
+          <div class="loader"></div>
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+      <div id="explanation-content"></div>
+    </div>
 
     <button id="download_pdf" disabled>PDF Dosyasını İndir</button>
 
