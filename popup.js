@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
           target: { tabId: tab.id },
           func: () => {
             const scripts = Array.from(document.scripts);
+
             const inlineScripts = scripts
               .filter((script) => !script.src)
               .map((script) => script.textContent || "");
@@ -265,17 +266,24 @@ document.addEventListener("DOMContentLoaded", () => {
             const classList = Array.from(
               document.querySelectorAll("[class]")
             ).flatMap((el) => Array.from(el.classList));
+
+            const linkHrefs = Array.from(
+              document.querySelectorAll("link[href]")
+            ).map((l) => l.href);
+
             const detectedUIFrameworks = [];
+
             const uiFrameworks = [
               {
                 name: "Tailwind CSS",
                 test: () =>
                   classList.filter((c) =>
-                    /^(text|bg|p|m|rounded|shadow|flex|grid|items|justify|w-|h-)/.test(
+                    /^(tw-|text|bg|p[trblxy]?|m[trblxy]?|rounded|shadow|flex|grid|items|justify|w-|h-)/.test(
                       c
                     )
                   ).length >= 5,
               },
+
               {
                 name: "Bootstrap",
                 test: () =>
@@ -305,7 +313,34 @@ document.addEventListener("DOMContentLoaded", () => {
                 name: "Ant Design",
                 test: () => classList.some((c) => /^ant-/.test(c)),
               },
+              {
+                name: "Chakra UI",
+                test: () =>
+                  classList.some((c) => /^css-[a-z0-9]{4,}$/.test(c)) &&
+                  !!document.querySelector("[data-theme]"),
+              },
+              {
+                name: "PrimeFlex",
+                test: () =>
+                  classList.some((c) =>
+                    /^(p-|pi-|p-d|p-m|p-p|p-grid|p-col)/.test(c)
+                  ),
+              },
+              {
+                name: "UIkit",
+                test: () => classList.some((c) => /^uk-/.test(c)),
+              },
+              {
+                name: "Shoelace",
+                test: () =>
+                  !!document.querySelector("sl-button, sl-input, sl-dialog"),
+              },
+              {
+                name: "Carbon Design",
+                test: () => classList.some((c) => /^bx--/.test(c)),
+              },
             ];
+
             uiFrameworks.forEach(({ name, test }) => {
               try {
                 if (test() && !detectedUIFrameworks.includes(name)) {
@@ -315,6 +350,43 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.warn(`UI framework tespiti hatası: ${name}`, err);
               }
             });
+
+            if (
+              linkHrefs.some((href) =>
+                /uikit|foundation|bulma|tailwind|bootstrap/i.test(href)
+              )
+            ) {
+              if (
+                linkHrefs.some((href) => /uikit/i.test(href)) &&
+                !detectedUIFrameworks.includes("UIkit")
+              ) {
+                detectedUIFrameworks.push("UIkit");
+              }
+              if (
+                linkHrefs.some((href) => /foundation/i.test(href)) &&
+                !detectedUIFrameworks.includes("Foundation")
+              ) {
+                detectedUIFrameworks.push("Foundation");
+              }
+              if (
+                linkHrefs.some((href) => /bulma/i.test(href)) &&
+                !detectedUIFrameworks.includes("Bulma")
+              ) {
+                detectedUIFrameworks.push("Bulma");
+              }
+              if (
+                linkHrefs.some((href) => /tailwind/i.test(href)) &&
+                !detectedUIFrameworks.includes("Tailwind CSS")
+              ) {
+                detectedUIFrameworks.push("Tailwind CSS");
+              }
+              if (
+                linkHrefs.some((href) => /bootstrap/i.test(href)) &&
+                !detectedUIFrameworks.includes("Bootstrap")
+              ) {
+                detectedUIFrameworks.push("Bootstrap");
+              }
+            }
             return { detectedUIFrameworks };
           },
         });
