@@ -5,6 +5,7 @@ import { filterComponent } from "./filter.js";
 import { deleteHistory } from "./delete.js";
 import { saveAnalysisHistory } from "./history.js";
 import { changeTheme } from "./theme.js";
+import { downloadPdf } from "./download.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const analysis_button = document.getElementById("analysis_button");
@@ -104,33 +105,36 @@ document.addEventListener("DOMContentLoaded", () => {
           target: { tabId: tab.id },
           func: () => {
             const detectedFrameworks = [];
+
             const scriptSrcs = Array.from(document.scripts)
               .map((s) => s.src || "")
               .filter(Boolean);
+
             const linkHrefs = Array.from(
               document.querySelectorAll("link[href]")
             ).map((l) => l.href);
+
             const fetchUrls = [];
             const classList = Array.from(
               document.querySelectorAll("[class]")
             ).flatMap((el) => Array.from(el.classList));
+
             const originalFetch = window.fetch;
             if (originalFetch) {
               window.fetch = function (...args) {
                 try {
                   fetchUrls.push(args[0]);
                 } catch {}
+
                 return originalFetch.apply(this, args);
               };
             }
+
             const devtoolHooks = {
               React: !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
               "Vue.js": !!window.__VUE_DEVTOOLS_GLOBAL_HOOK__,
             };
-            const commentHints = {
-              React: [/react/i],
-              "Vue.js": [/vue/i, /v-if/, /v-for/],
-            };
+
             const scanCommentNodes = () => {
               const iterator = document.createNodeIterator(
                 document,
@@ -138,21 +142,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 null,
                 false
               );
+
               let currentNode;
               const found = {};
               while ((currentNode = iterator.nextNode())) {
                 const text = currentNode.textContent;
-                for (const [fw, patterns] of Object.entries(commentHints)) {
-                  for (const pattern of patterns) {
-                    if (pattern.test(text)) {
-                      found[fw] = true;
-                    }
-                  }
-                }
+                if (/react/i.test(text)) found["React"] = true;
+                if (/vue|v-if|v-for/.test(text)) found["Vue.js"] = true;
               }
               return found;
             };
+
             const commentBased = scanCommentNodes();
+
             const knownFrameworks = [
               {
                 name: "React",
@@ -212,6 +214,19 @@ document.addEventListener("DOMContentLoaded", () => {
                   scriptSrcs.some((src) => /svelte/i.test(src)),
               },
               {
+                name: "Alpine.js",
+                test: () =>
+                  !!document.querySelector("[x-data]") ||
+                  scriptSrcs.some((src) => /alpine/i.test(src)),
+              },
+              {
+                name: "Ember.js",
+                test: () =>
+                  window.Ember ||
+                  scriptSrcs.some((src) => /ember/i.test(src)) ||
+                  !!document.querySelector('[id^="ember"]'),
+              },
+              {
                 name: "WordPress",
                 test: () => {
                   const meta = document.querySelector('meta[name="generator"]');
@@ -220,9 +235,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   const hasPaths = [...scriptSrcs, ...linkHrefs].some((src) =>
                     /wp-(content|includes)/i.test(src)
                   );
-                  const bodyClass = document.body.className || "";
+
                   const hasClass =
-                    bodyClass.includes("wp-") ||
+                    document.body.className.includes("wp-") ||
                     classList.some((c) => c.startsWith("wp-"));
                   const hasRestApi = fetchUrls.some((url) =>
                     url.includes("/wp-json/")
@@ -497,70 +512,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ai_button.disabled = false;
         saveAnalysisHistory({ site: domain, type: "security", ...response });
 
-        download_button.onclick = () => {
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(22);
-          doc.text("Web Güvenlik Analiz Raporu", 105, 20, null, null, "center");
-
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(12);
-          doc.setTextColor(100);
-          doc.text(`Analiz edilen: ${site_url}`, 105, 30, null, null, "center");
-          doc.line(10, 38, 200, 38);
-
-          doc.setTextColor(0);
-          doc.setFontSize(16);
-          doc.setFont("helvetica", "bold");
-          doc.text("Analiz Sonuçlari:", 10, 50);
-
-          doc.setFontSize(10);
-          doc.setFont("courier", "normal");
-
-          const analysisText = JSON.stringify(response, null, 2);
-          const splitText = doc.splitTextToSize(analysisText, 190);
-
-          let y = 60;
-          const lineHeight = 5;
-          const pageHeight = doc.internal.pageSize.height;
-          const margin = 10;
-
-          splitText.forEach((line) => {
-            if (y + lineHeight > pageHeight - margin) {
-              doc.addPage();
-              y = 10;
-              y = margin;
-              doc.setFontSize(10);
-              doc.setFont("courier", "normal");
-            }
-            doc.text(line, 10, y);
-            y += lineHeight;
-          });
-
-          const pageCount = doc.internal.getNumberOfPages();
-          for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(10);
-            doc.setTextColor(150);
-            doc.text(
-              `${i}.Sayfa`,
-              doc.internal.pageSize.width - 30,
-              doc.internal.pageSize.height - 10,
-              null,
-              null,
-              "right"
-            );
-            doc.text(
-              `Olusturulma tarihi: ${new Date().toLocaleDateString()}`,
-              10,
-              doc.internal.pageSize.height - 10
-            );
-          }
-
-          doc.save("web_guvenlik.pdf");
-        };
+        downloadPdf(response, site_url);
 
         ai_button.onclick = () => {
           explanation_content.innerText = "";
@@ -676,77 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
           pageSpeed: page_speed_scores,
         });
 
-        download_button.onclick = () => {
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(22);
-          doc.text(
-            "Web Performans Analiz Raporu",
-            105,
-            20,
-            null,
-            null,
-            "center"
-          );
-
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(12);
-          doc.setTextColor(100);
-          doc.text(`Analiz edilen: ${site_url}`, 105, 30, null, null, "center");
-          doc.line(10, 38, 200, 38);
-
-          doc.setTextColor(0);
-          doc.setFontSize(16);
-          doc.setFont("helvetica", "bold");
-          doc.text("Performans Sonuçlari:", 10, 50);
-
-          doc.setFontSize(10);
-          doc.setFont("courier", "normal");
-
-          const performanceText = JSON.stringify(page_speed_scores, null, 2);
-          const splitText = doc.splitTextToSize(performanceText, 190);
-
-          let y = 60;
-          const lineHeight = 5;
-          const pageHeight = doc.internal.pageSize.height;
-          const margin = 10;
-
-          splitText.forEach((line) => {
-            if (y + lineHeight > pageHeight - margin) {
-              doc.addPage();
-              y = 10;
-              y = margin;
-              doc.setFontSize(10);
-              doc.setFont("courier", "normal");
-            }
-            doc.text(line, 10, y);
-            y += lineHeight;
-          });
-
-          const pageCount = doc.internal.getNumberOfPages();
-          for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(10);
-            doc.setTextColor(150);
-            doc.text(
-              `${i}.Sayfa`,
-              doc.internal.pageSize.width - 30,
-              doc.internal.pageSize.height - 10,
-              null,
-              null,
-              "right"
-            );
-            doc.text(
-              `Olusturulma tarihi: ${new Date().toLocaleDateString()}`,
-              10,
-              doc.internal.pageSize.height - 10
-            );
-          }
-
-          doc.save("web_performans.pdf");
-        };
+        downloadPdf(page_speed_scores, site_url);
 
         ai_button.onclick = () => {
           explanation_content.innerText = "";
