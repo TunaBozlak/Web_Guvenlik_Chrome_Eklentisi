@@ -1,85 +1,20 @@
-import { drawChart } from "./chart.js";
 import { pageSpeedScores } from "./performance.js";
 import { analyzeSecurityStatus, calculateSecurityScore } from "./security.js";
+import { createCard } from "./card.js";
+import { filterComponent } from "./filter.js";
+import { deleteHistory } from "./delete.js";
+import { saveAnalysisHistory } from "./history.js";
+import { changeTheme } from "./theme.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const theme_button = document.getElementById("change_theme");
   const analysis_button = document.getElementById("analysis_button");
   const download_button = document.getElementById("download_pdf");
   const ai_button = document.getElementById("ai_button");
-  const history_div = document.getElementById("history");
-  const clear_history_button = document.getElementById("delete_history");
-  const filter_button = document.getElementById("filter_button");
-  const reset_filter_button = document.getElementById("reset_filter_button");
-  const start_date_input = document.getElementById("start_date");
-  const end_date_input = document.getElementById("end_date");
   const performance_button = document.getElementById("performance_button");
   const loading = document.getElementById("loading");
   const loading_explanation = document.getElementById("loading-explanation");
   const results_content = document.getElementById("results-content");
   const explanation_content = document.getElementById("explanation-content");
-
-  const createCard = (title, status) => {
-    const card = document.createElement("div");
-    card.classList.add("security-card");
-
-    const icon = document.createElement("span");
-    icon.style.fontSize = "18px";
-
-    let color, iconSymbol;
-    if (status === "safe") {
-      color = "green";
-      iconSymbol = "🎉";
-    } else if (status === "warning") {
-      color = "orange";
-      iconSymbol = "⚠️";
-    } else {
-      color = "red";
-      iconSymbol = "💣";
-    }
-
-    card.style.borderColor = color;
-    card.style.color = color;
-
-    card.innerHTML = `<span>${title}</span>`;
-    icon.textContent = iconSymbol;
-
-    card.appendChild(icon);
-    return card;
-  };
-
-  filter_button.addEventListener("click", () => {
-    const start_date = new Date(start_date_input.value);
-    const end_date = new Date(end_date_input.value);
-    end_date.setHours(23, 59, 59, 999);
-    if (!start_date_input.value || !end_date_input.value) {
-      alert("Lütfen tarih aralığı seçiniz");
-      return;
-    }
-    if (end_date < start_date) {
-      alert("Bitiş tarihi, başlangıç tarihinden küçük olamaz ");
-      return;
-    }
-    displayHistory(start_date, end_date);
-  });
-
-  reset_filter_button.addEventListener("click", () => {
-    start_date_input.value = "";
-    end_date_input.value = "";
-    displayHistory();
-  });
-
-  theme_button.addEventListener("click", async () => {
-    document.body.classList.toggle("dark");
-    const is_dark = document.body.classList.contains("dark");
-    await chrome.storage.local.set({ theme: is_dark ? "dark" : "light" });
-  });
-
-  chrome.storage.local.get("theme", (data) => {
-    if (data.theme === "dark") {
-      document.body.classList.add("dark");
-    }
-  });
 
   const performSecurityAnalysis = async () => {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -831,133 +766,7 @@ document.addEventListener("DOMContentLoaded", () => {
   analysis_button.addEventListener("click", performSecurityAnalysis);
   performance_button.addEventListener("click", performPerformanceTest);
 
-  const saveAnalysisHistory = (result) => {
-    chrome.storage.local.get("history", (data) => {
-      const history = data.history || [];
-      history.unshift({
-        date: new Date().toLocaleString(),
-        result,
-      });
-
-      chrome.storage.local.set({ history });
-      displayHistory();
-    });
-  };
-
-  const displayHistory = (start_date = null, end_date = null) => {
-    chrome.storage.local.get("history", (data) => {
-      history_div.innerHTML = "";
-      const history = data.history || [];
-
-      const filtered_history = history.filter((entry) => {
-        if (!start_date || !end_date) {
-          return true;
-        }
-
-        const dateString = entry.date;
-        const [datePart, timePart] = dateString.split(" ");
-        const [day, month, year] = datePart.split(".").map(Number);
-        const [hour, minute, second] = timePart.split(":").map(Number);
-        const entry_date = new Date(year, month - 1, day, hour, minute, second);
-
-        if (isNaN(entry_date.getTime())) {
-          console.warn(
-            "Geçersiz tarih formatı algılandı (manuel parse sonrası):",
-            entry.date
-          );
-          return false;
-        }
-        return entry_date >= start_date && entry_date <= end_date;
-      });
-
-      if (filtered_history.length === 0) {
-        history_div.innerHTML = "Geçmiş Boş";
-        drawChart([]);
-        return;
-      }
-
-      drawChart(filtered_history);
-
-      filtered_history.forEach((entry, index) => {
-        const item = document.createElement("div");
-        item.classList.add("item");
-
-        const header = document.createElement("div");
-        header.style.display = "flex";
-        header.style.justifyContent = "space-between";
-        header.style.alignItems = "center";
-
-        const leftPart = document.createElement("div");
-        const domain = entry.result?.site || "Bilinmeyen Site";
-        const type =
-          entry.result?.type === "performance"
-            ? " (Performans)"
-            : " (Güvenlik)";
-        leftPart.innerHTML = `
-          <div style="font-weight: bold;">${domain}${type}</div>
-          <div style="font-size: 12px; color: gray;">${entry.date}</div>
-        `;
-
-        const rightPart = document.createElement("div");
-        rightPart.style.display = "flex";
-        rightPart.style.alignItems = "center";
-        rightPart.style.gap = "8px";
-
-        const arrow = document.createElement("span");
-        arrow.innerHTML = "&#9660;";
-
-        const analysis_delete_button = document.createElement("button");
-        analysis_delete_button.textContent = "Sil";
-        analysis_delete_button.classList.add("analysis-delete-button");
-        analysis_delete_button.onclick = (e) => {
-          e.stopPropagation();
-          deleteAnalysis(index);
-        };
-
-        rightPart.appendChild(analysis_delete_button);
-        rightPart.appendChild(arrow);
-        header.appendChild(leftPart);
-        header.appendChild(rightPart);
-        item.appendChild(header);
-
-        const details = document.createElement("div");
-        details.style.display = "none";
-        details.style.marginTop = "8px";
-        details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
-          entry.result,
-          null,
-          2
-        )}</pre>`;
-        item.appendChild(details);
-
-        item.addEventListener("click", () => {
-          details.style.display =
-            details.style.display === "none" ? "block" : "none";
-          arrow.innerHTML =
-            details.style.display === "none" ? "&#9660;" : "&#9650;";
-        });
-
-        history_div.appendChild(item);
-      });
-    });
-  };
-  displayHistory();
-
-  clear_history_button.addEventListener("click", () => {
-    chrome.storage.local.remove("history", () => {
-      displayHistory();
-      alert("Geçmiş Başarıyla Temizlendi!");
-    });
-  });
-
-  const deleteAnalysis = (index) => {
-    chrome.storage.local.get("history", (data) => {
-      const history = data.history || [];
-      history.splice(index, 1);
-      chrome.storage.local.set({ history }, () => {
-        alert("Seçilen kayıt silindi");
-        displayHistory();
-      });
-    });
-  };
+  filterComponent();
+  deleteHistory();
+  changeTheme();
 });

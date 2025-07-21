@@ -1,5 +1,5 @@
 body {
-  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* Daha modern bir font tercih edildi */
   color: #333;
   background-color: #f0f2f5;
   margin: 0;
@@ -13,11 +13,12 @@ body {
 
 h2,
 h3 {
-  color: #2c3e50;
+  color: #1a2b3c;
   margin-top: 0;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 5px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e6ed;
+  padding-bottom: 10px;
+  font-weight: 600;
 }
 
 button {
@@ -25,36 +26,44 @@ button {
   color: white;
   border: none;
   padding: 10px 15px;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+  font-size: 15px;
+  transition: background-color 0.3s ease, transform 0.2s ease,
+    box-shadow 0.2s ease;
   margin-right: 10px;
   margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 }
 
 button:hover {
-  background-color: #0056b3;
-  transform: translateY(-1px);
+  background-color: #0069d9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 button:active {
-  background-color: #004085;
+  background-color: #0056b3;
   transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 button:disabled {
-  background-color: #cccccc;
+  background-color: #ced4da;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+  opacity: 0.7;
 }
 
 #delete_history {
   background-color: #dc3545;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 }
 
 #delete_history:hover {
   background-color: #c82333;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 #results,
@@ -62,16 +71,28 @@ button:disabled {
 #history {
   background-color: #ffffff;
   border: 1px solid #e9ecef;
-  border-radius: 5px;
+  border-radius: 8px;
   padding: 15px;
   margin-bottom: 15px;
   min-height: 50px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 #history {
   max-height: 200px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #007bff #f1f1f1;
+}
+#history::-webkit-scrollbar {
+  width: 8px;
+}
+#history::-webkit-scrollbar-thumb {
+  background-color: #007bff;
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
 }
 
 body.dark {
@@ -87,11 +108,12 @@ body.dark h3 {
 
 body.dark button {
   background-color: #1e88e5;
-  color: white;
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.2);
 }
 
 body.dark button:hover {
   background-color: #1565c0;
+  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
 }
 
 body.dark button:active {
@@ -99,16 +121,18 @@ body.dark button:active {
 }
 
 body.dark button:disabled {
-  background-color: #555;
-  color: #aaa;
+  background-color: #4a4a4a;
+  color: #999999;
 }
 
 body.dark #delete_history {
   background-color: #e53935;
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
 }
 
 body.dark #delete_history:hover {
   background-color: #b71c1c;
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
 }
 
 body.dark #results,
@@ -128,19 +152,23 @@ body.dark #history {
   cursor: pointer;
   font-size: 12px;
   margin-left: 10px;
-  transition: background-color 0.2s ease-in-out;
+  transition: background-color 0.3s ease-in-out;
+  box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
 }
 
 .analysis-delete-button:hover {
   background-color: #c82333;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
 body.dark .analysis-delete-button {
   background-color: #e53935;
+  box-shadow: 0 1px 4px rgba(229, 57, 53, 0.2);
 }
 
 body.dark .analysis-delete-button:hover {
   background-color: #b71c1c;
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
 
 #filter {
@@ -150,6 +178,8 @@ body.dark .analysis-delete-button:hover {
   padding: 10px 15px;
   margin-bottom: 15px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 #filter label {
@@ -167,6 +197,14 @@ body.dark .analysis-delete-button:hover {
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
+  background-color: #fdfdfd;
+  color: #333;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+#filter input[type="date"]:focus {
+  border-color: #007bff; /* Focus'ta mavi sınır */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Hafif gölge */
+  outline: none; /* Odaklandığında varsayılan dış hattı kaldır */
 }
 
 #filter button {
@@ -178,23 +216,26 @@ body.dark .analysis-delete-button:hover {
   background-color: #007bff;
   color: white;
   font-size: 14px;
-  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+  transition: background-color 0.3s ease-in-out, transform 0.1s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 }
 
 #filter button:hover {
   background-color: #0056b3;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 #filter button:active {
   background-color: #004085;
   transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 body.dark #filter {
   background-color: #1e1e1e;
   border-color: #333;
-  box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 }
 
 body.dark #filter label {
@@ -207,12 +248,19 @@ body.dark #filter input[type="date"] {
   border-color: #555;
 }
 
+body.dark #filter input[type="date"]:focus {
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.25);
+}
+
 body.dark #filter button {
   background-color: #1e88e5;
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.2);
 }
 
 body.dark #filter button:hover {
   background-color: #1565c0;
+  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
 }
 
 body.dark #filter button:active {
@@ -228,6 +276,12 @@ body.dark #filter button:active {
   justify-content: space-between;
   align-items: center;
   font-weight: bold;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+.security-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); /* Hover'da daha belirgin gölge */
 }
 
 .api-card {
@@ -236,7 +290,8 @@ body.dark #filter button:active {
   padding: 15px 20px;
   margin-bottom: 15px;
   background-color: #ffffff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); /* Daha belirgin gölge */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .api-ul {
