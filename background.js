@@ -40,6 +40,25 @@ const scanUrlWithVirusTotal = async (url) => {
   return reportData;
 };*/
 
+let detectedApiCalls = [];
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    if (
+      ["xmlhttprequest", "fetch"].includes(details.type) &&
+      ["GET", "POST", "PUT", "DELETE"].includes(details.method.toUpperCase()) &&
+      /\/(api|rest|v\d+|endpoint|json|php)/i.test(details.url)
+    ) {
+      detectedApiCalls.push({
+        url: details.url,
+        method: details.method,
+        status: details.statusCode,
+        time: new Date().toLocaleTimeString(),
+      });
+    }
+  },
+  { urls: ["<all_urls>"] }
+);
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "analyze") {
     console.log("Analizlenen site:", message.url);
@@ -78,48 +97,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "analyzeApiEndpoints") {
-    console.log("API endpoint analizi başlatıldı:", message.endpoints);
-    const results = {};
-    const analyzeEndpoint = async (url) => {
-      try {
-        const response = await fetch(url, {
-          method: "OPTIONS",
-          mode: "cors",
-        });
-        const corsHeaders = {
-          "Access-Control-Allow-Origin": response.headers.get(
-            "access-control-allow-origin"
-          ),
-          "Access-Control-Allow-Methods": response.headers.get(
-            "access-control-allow-methods"
-          ),
-          "Access-Control-Allow-Headers": response.headers.get(
-            "access-control-allow-headers"
-          ),
-        };
-        const authHeader = response.headers.get("www-authenticate");
-        const rateLimitHeaders = {
-          "X-RateLimit-Limit": response.headers.get("x-ratelimit-limit"),
-          "X-RateLimit-Remaining": response.headers.get(
-            "x-ratelimit-remaining"
-          ),
-          "Retry-After": response.headers.get("retry-after"),
-        };
-        results[url] = {
-          cors: corsHeaders,
-          authRequired: !!authHeader,
-          rateLimit: rateLimitHeaders,
-          status: response.status,
-        };
-      } catch (error) {
-        results[url] = {
-          error: error.message,
-        };
-      }
-    };
-    Promise.all(message.endpoints.map(analyzeEndpoint)).then(() => {
-      sendResponse({ apiSecurity: results });
-    });
+    sendResponse({ endpoints: detectedApiCalls });
+    detectedApiCalls = [];
     return true;
   }
 });

@@ -332,3 +332,21 @@ body.dark #filter button:active {
     transform: rotate(360deg);
   }
 }
+
+.api-card-v2 {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.api-card-v2::-webkit-scrollbar {
+  width: 8px;
+}
+.api-card-v2::-webkit-scrollbar-thumb {
+  background-color: #007bff;
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
+}
