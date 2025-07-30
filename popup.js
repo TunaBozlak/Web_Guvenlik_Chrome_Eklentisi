@@ -175,8 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const details = document.createElement("div");
-    details.style.display = "none";
-    details.style.marginTop = "8px";
+    details.classList.add("details");
     details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
       response,
       null,

@@ -4,7 +4,7 @@ body {
   background-color: #f0f2f5;
   margin: 0;
   padding: 20px;
-  width: 320px;
+  width: 450px;
   box-sizing: border-box;
   overflow-y: auto;
   border-radius: 8px;
@@ -275,13 +275,16 @@ body.dark #filter button:active {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: bold;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
+  cursor: default;
+  will-change: box-shadow, transform, border-color;
 }
 .security-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); /* Hover'da daha belirgin gölge */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  border-color: #0056b3;
 }
 
 .api-card {
@@ -349,4 +352,11 @@ body.dark #filter button:active {
   background-color: #007bff;
   border-radius: 10px;
   border: 2px solid #f1f1f1;
+}
+
+.details {
+  display: none;
+  margin-top: 8px;
+  max-height: 300px;
+  overflow-y: auto;
 }
