@@ -136,29 +136,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             .map((s) => s.src || "")
             .filter(Boolean);
 
-          const linkHrefs = Array.from(
-            document.querySelectorAll("link[href]")
-          ).map((l) => l.href);
-
-          const fetchUrls = [];
           const classList = Array.from(
             document.querySelectorAll("[class]")
           ).flatMap((el) => Array.from(el.classList));
 
-          const originalFetch = window.fetch;
-          if (originalFetch) {
-            window.fetch = function (...args) {
-              try {
-                fetchUrls.push(args[0]);
-              } catch {}
-
-              return originalFetch.apply(this, args);
-            };
-          }
-
           const devtoolHooks = {
             React: !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
             "Vue.js": !!window.__VUE_DEVTOOLS_GLOBAL_HOOK__,
+            Angular: !!window.__ANGULAR_DEVTOOLS_GLOBAL_HOOK__,
           };
 
           const scanCommentNodes = () => {
@@ -173,8 +158,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const found = {};
             while ((currentNode = iterator.nextNode())) {
               const text = currentNode.textContent;
-              if (/react/i.test(text)) found["React"] = true;
-              if (/vue|v-if|v-for/.test(text)) found["Vue.js"] = true;
+              if (
+                /react-empty|react-text|data-react-checksum|react-container/i.test(
+                  text
+                )
+              )
+                found["React"] = true;
+              if (/vue-component|v-if|v-for|v-bind|v-on/i.test(text))
+                found["Vue.js"] = true;
+              if (/ng-/.test(text)) found["Angular"] = true;
             }
             return found;
           };
@@ -185,72 +177,141 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             {
               name: "React",
               test: () =>
-                window.React ||
-                !!document.querySelector("[data-reactroot], #root, #app") ||
+                (window.React &&
+                  (typeof window.React.createElement === "function" ||
+                    typeof window.ReactDOM === "object")) ||
+                !!document.querySelector(
+                  "[data-reactroot], #root, #app, [data-reactid], [data-react-checksum]"
+                ) ||
                 devtoolHooks["React"] ||
                 commentBased["React"] ||
-                classList.some((c) => c.startsWith("jsx-")) ||
-                scriptSrcs.some((src) => /react/i.test(src)),
+                classList.some(
+                  (c) =>
+                    c.startsWith("jsx-") ||
+                    c.startsWith("react-") ||
+                    c.includes("react-container")
+                ) ||
+                scriptSrcs.some(
+                  (src) =>
+                    /react|react-dom|next/i.test(src) &&
+                    !/web-components/.test(src)
+                ),
+              version: () => window.React?.version || null,
             },
             {
               name: "Next.js",
               test: () =>
                 !!window.__NEXT_DATA__ ||
-                scriptSrcs.some((src) => src.includes("_next")) ||
-                fetchUrls.some((url) => url.includes("_next/data")),
+                scriptSrcs.some((src) =>
+                  /_next\/(static|webpack|client-script)/i.test(src)
+                ) ||
+                allFetchedUrls.some(
+                  (url) =>
+                    url.includes("_next/data") ||
+                    url.includes("_next/webpack-hmr")
+                ) ||
+                moduleScriptContents.some(
+                  (content) =>
+                    content.includes("next.config") ||
+                    content.includes("webpackHotUpdate")
+                ),
+              version: () => window.__NEXT_DATA__?.buildId || null,
             },
             {
               name: "Angular",
               test: () =>
-                window.angular ||
+                (window.angular && window.angular.version) ||
                 !!document.querySelector(
-                  "[ng-app], [data-ng-app], .ng-scope"
+                  "[ng-app], [data-ng-app], .ng-scope, [ng-version], [_ngcontent-], [_nghost-] "
                 ) ||
-                scriptSrcs.some((src) => /angular/i.test(src)),
+                devtoolHooks["Angular"] ||
+                commentBased["Angular"] ||
+                scriptSrcs.some(
+                  (src) =>
+                    /angular|zone\.js|polyfills|main\.js/i.test(src) &&
+                    !/angularjs\.org/.test(src)
+                ),
+              version: () =>
+                window.angular?.version?.full ||
+                document
+                  .querySelector("[ng-version]")
+                  ?.getAttribute("ng-version") ||
+                null,
             },
             {
               name: "Vue.js",
               test: () =>
-                window.Vue ||
-                !!document.querySelector("[data-v-app], #app") ||
+                (window.Vue &&
+                  (typeof window.Vue.version === "string" ||
+                    typeof window.Vue.createApp === "function")) ||
+                !!document.querySelector(
+                  "[data-v-app], #app, [data-vue-router-initialized]"
+                ) ||
                 devtoolHooks["Vue.js"] ||
                 commentBased["Vue.js"] ||
-                classList.some((c) => c.startsWith("v-")) ||
-                scriptSrcs.some((src) => /vue/i.test(src)),
+                classList.some(
+                  (c) => c.startsWith("v-") || c.startsWith("vue-")
+                ) ||
+                scriptSrcs.some((src) => /vue|vue-router|vuex/i.test(src)),
+              version: () => window.Vue?.version || null,
             },
             {
               name: "Nuxt.js",
               test: () =>
-                scriptSrcs.some((src) => src.includes("_nuxt")) ||
+                scriptSrcs.some((src) =>
+                  /_nuxt\/(build|manifest)/i.test(src)
+                ) ||
                 !!window.__NUXT__ ||
-                fetchUrls.some((url) => url.includes("_nuxt")),
+                allFetchedUrls.some((url) => url.includes("_nuxt")),
+              version: () => window.__NUXT__?.version || null,
             },
             {
               name: "jQuery",
               test: () =>
                 window.jQuery ||
-                typeof $ === "function" ||
-                scriptSrcs.some((src) => /jquery/i.test(src)),
+                (typeof $ === "function" &&
+                  typeof $.fn === "object" &&
+                  typeof $.fn.jquery === "string") ||
+                scriptSrcs.some(
+                  (src) =>
+                    /jquery(\.min)?\.js/i.test(src) ||
+                    src.includes("/ajax/libs/jquery/")
+                ),
+              version: () => window.jQuery?.fn?.jquery || null,
             },
             {
               name: "Svelte",
               test: () =>
-                !!document.querySelector("[data-svelte-h]") ||
+                !!document.querySelector(
+                  "[data-svelte-h], [data-sveltekit-prefetch], [data-sveltekit-route]"
+                ) ||
                 classList.some((c) => c.startsWith("svelte-")) ||
-                scriptSrcs.some((src) => /svelte/i.test(src)),
+                scriptSrcs.some((src) => /svelte(\.min)?\.js/i.test(src)),
+              version: () => {
+                const svelteScript = scriptSrcs.find((src) =>
+                  /svelte/i.test(src)
+                );
+                if (svelteScript) {
+                  return null;
+                }
+                return null;
+              },
             },
             {
               name: "Alpine.js",
               test: () =>
-                !!document.querySelector("[x-data]") ||
-                scriptSrcs.some((src) => /alpine/i.test(src)),
+                !!document.querySelector(
+                  "[x-data], [x-bind], [x-on], [x-for], [x-model], [x-init]"
+                ) || scriptSrcs.some((src) => /alpine(\.min)?\.js/i.test(src)),
+              version: () => window.Alpine?.version || null,
             },
             {
               name: "Ember.js",
               test: () =>
                 window.Ember ||
-                scriptSrcs.some((src) => /ember/i.test(src)) ||
+                scriptSrcs.some((src) => /ember(\.min)?\.js/i.test(src)) ||
                 !!document.querySelector('[id^="ember"]'),
+              version: () => window.Ember?.VERSION || null,
             },
             {
               name: "WordPress",
@@ -258,24 +319,72 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const meta = document.querySelector('meta[name="generator"]');
                 const hasMeta =
                   meta && meta.content.toLowerCase().includes("wordpress");
-                const hasPaths = [...scriptSrcs, ...linkHrefs].some((src) =>
-                  /wp-(content|includes)/i.test(src)
+                const hasPaths = [...scriptSrcs].some((src) =>
+                  /wp-(content|includes|admin)|themes\//i.test(src)
                 );
-
                 const hasClass =
                   document.body.className.includes("wp-") ||
                   classList.some((c) => c.startsWith("wp-"));
-                const hasRestApi = fetchUrls.some((url) =>
-                  url.includes("/wp-json/")
+                const hasRestApi = allFetchedUrls.some(
+                  (url) =>
+                    url.includes("/wp-json/") || url.includes("?rest_route=")
                 );
-                return hasMeta || hasPaths || hasClass || hasRestApi;
+                const hasWpObject = !!window.wp;
+                return (
+                  hasMeta || hasPaths || hasClass || hasRestApi || hasWpObject
+                );
+              },
+              version: () => {
+                const meta = document.querySelector('meta[name="generator"]');
+                if (meta && meta.content.includes("WordPress")) {
+                  const match = meta.content.match(
+                    /WordPress (\d+\.\d+(\.\d+)?)/
+                  );
+                  return match ? match[1] : null;
+                }
+                return null;
               },
             },
+            {
+              name: "Preact",
+              test: () =>
+                !!window.preact ||
+                scriptSrcs.some((src) => /preact(\.min)?\.js/i.test(src)),
+              version: () => window.preact?.version || null,
+            },
+            {
+              name: "Qwik",
+              test: () =>
+                !!window.qwikSymbols ||
+                scriptSrcs.some((src) => /qwik(\.min)?\.js/i.test(src)) ||
+                allFetchedUrls.some((url) => url.includes("/qwik/")),
+              version: () => null,
+            },
+            {
+              name: "Astro",
+              test: () =>
+                classList.some((c) => c.includes("astro")) ||
+                scriptSrcs.some(
+                  (src) => /astro\.(m)?js/i.test(src) || src.includes("_astro/")
+                ) ||
+                !!document.querySelector("script[data-astro-cid]"),
+              version: () => null,
+            },
+            {
+              name: "Inferno",
+              test: () =>
+                window.Inferno !== undefined ||
+                scriptSrcs.some((src) => /inferno(\.min)?\.js/i.test(src)),
+              version: () => window.Inferno?.version || null,
+            },
           ];
-          knownFrameworks.forEach(({ name, test }) => {
+          knownFrameworks.forEach(({ name, test, version }) => {
             try {
               if (test() && !detectedFrameworks.includes(name)) {
-                detectedFrameworks.push(name);
+                detectedFrameworks.push({
+                  name,
+                  version: version ? version() : null,
+                });
               }
             } catch (err) {
               console.warn(`Framework tespit hatası: ${name}`, err);
@@ -284,6 +393,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return { detectedFrameworks };
         },
       });
+
       const uiResult = await chrome.scripting.executeScript({
         target: { tabId: tabId },
         func: () => {

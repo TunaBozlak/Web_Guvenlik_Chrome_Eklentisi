@@ -104,7 +104,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         li.style.marginBottom = "5px";
         li.style.fontSize = "1.1em";
-        li.innerHTML = `✨ <span style="font-weight: bold; color: #4CAF50;">${framework}</span>`;
+        li.innerHTML = `✨ <span style="font-weight: bold; color: #4CAF50;">${
+          framework.name
+        } ${
+          framework.version ? framework.version : "(Versiyon Bilinmiyor)"
+        }</span>`;
         ul.appendChild(li);
       });
       results_content.appendChild(ul);
