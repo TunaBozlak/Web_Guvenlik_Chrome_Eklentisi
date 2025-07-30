@@ -1,10 +1,13 @@
-import { analyzeSecurityStatus, calculateSecurityScore } from "./security.js";
-import { createCard } from "./card.js";
-import { filterComponent } from "./filter.js";
-import { deleteHistory } from "./delete.js";
-import { saveAnalysisHistory } from "./history.js";
-import { changeTheme } from "./theme.js";
-import { downloadPdf } from "./download.js";
+import {
+  analyzeSecurityStatus,
+  calculateSecurityScore,
+} from "./components/security.js";
+import { createCard } from "./components/card.js";
+import { filterComponent } from "./components/filter.js";
+import { deleteHistory } from "./components/delete.js";
+import { saveAnalysisHistory } from "./components/history.js";
+import { changeTheme } from "./components/theme.js";
+import { downloadPdf } from "./components/download.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const analysis_button = document.getElementById("analysis_button");

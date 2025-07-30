@@ -1,4 +1,4 @@
-import { API_KEY_PAGE_SPEED } from "./config.js";
+import { API_KEY_PAGE_SPEED } from "../config.js";
 
 export const pageSpeedScores = async (site_url) => {
   const api_key = API_KEY_PAGE_SPEED;

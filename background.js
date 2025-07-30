@@ -1,5 +1,5 @@
 import { getAIExplanation } from "./geminiAPI.js";
-import { pageSpeedScores } from "./performance.js";
+import { pageSpeedScores } from "./components/performance.js";
 //import { API_KEY_VIRUS } from "./config.js";
 
 let latestHeaders = {};
