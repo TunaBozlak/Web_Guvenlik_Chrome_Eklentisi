@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const explanation_content = document.getElementById("explanation-content");
 
   const performSecurityAnalysis = async () => {
+    const startTime = Date.now();
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     results_content.innerHTML = "";
     explanation_content.innerText = "";
@@ -47,6 +48,13 @@ document.addEventListener("DOMContentLoaded", () => {
     response.endpoints = apiResponse?.endpoints || [];
 
     loading.style.display = "none";
+
+    const endTime = Date.now();
+    const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
+    const duration_div = document.createElement("div");
+    duration_div.innerHTML = `<strong>Analiz Süresi:</strong> ${durationInSeconds} saniye`;
+    duration_div.style.marginBottom = "8px";
+    results_content.prepend(duration_div);
 
     if (!response) {
       results_content.innerHTML =
@@ -212,6 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const performPerformanceTest = async () => {
+    const startTime = Date.now();
     results_content.innerHTML = "";
     explanation_content.innerText = "";
     download_button.disabled = true;
@@ -234,6 +243,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     loading.style.display = "none";
+
+    const endTime = Date.now();
+    const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
+    const duration_div = document.createElement("div");
+    duration_div.innerHTML = `<strong>Analiz Süresi:</strong> ${durationInSeconds} saniye`;
+    duration_div.style.marginBottom = "8px";
+    results_content.prepend(duration_div);
 
     if (!page_speed_scores) {
       results_content.innerHTML = "<p>Performans skorları alınamadı.</p>";
