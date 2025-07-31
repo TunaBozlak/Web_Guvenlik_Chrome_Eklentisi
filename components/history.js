@@ -1,5 +1,6 @@
 import { drawChart } from "./chart.js";
 import { deleteAnalysis } from "./delete.js";
+import { downloadPdf } from "./download.js";
 
 const history_div = document.getElementById("history");
 
@@ -83,6 +84,14 @@ export const displayHistory = (start_date = null, end_date = null) => {
         e.stopPropagation();
         deleteAnalysis(index);
       };
+
+      const download_button = document.createElement("button");
+      download_button.textContent = "PDF";
+      download_button.classList.add("history-pdf-button");
+      download_button.addEventListener("click", () => {
+        downloadPdf(entry.result, entry.result.site);
+      });
+      rightPart.appendChild(download_button);
 
       rightPart.appendChild(analysis_delete_button);
       rightPart.appendChild(arrow);

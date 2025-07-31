@@ -14,6 +14,14 @@ export const createCard = (title, status) => {
       "Çerezlerin Secure, HttpOnly ve SameSite gibi özelliklerle korunduğunu kontrol eder.",
     "JavaScript Riskleri":
       "Sayfada tehlikeli veya şüpheli JavaScript işlevleri (örneğin eval()) kullanılıp kullanılmadığını analiz eder.",
+    "Performans ":
+      "Sayfa hızı, kullanıcı deneyimi ve kaynakların yüklenme süresine göre genel performansı gösterir.",
+    "Erişilebilirlik ":
+      "Site içeriğinin engelli kullanıcılar tarafından erişilebilir olup olmadığını değerlendirir.",
+    "En İyi Uygulamalar":
+      "Modern web standartlarına ve güvenlik uygulamalarına uygunluğu denetler.",
+    "SEO ":
+      "Sayfanın arama motorları tarafından ne kadar iyi taranabilir ve dizine eklenebilir olduğunu gösterir.",
   };
 
   const card = document.createElement("div");

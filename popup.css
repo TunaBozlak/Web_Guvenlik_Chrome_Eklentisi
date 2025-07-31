@@ -387,3 +387,31 @@ body.dark #filter button:active {
   visibility: visible;
   opacity: 1;
 }
+
+.history-pdf-button {
+  background-color: #0ee447;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 10px;
+  transition: background-color 0.3s ease-in-out;
+  box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
+}
+
+.history-pdf-button:hover {
+  background-color: #19d34b;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+body.dark .history-pdf-button {
+  background-color: #14cb5d;
+  box-shadow: 0 1px 4px rgba(229, 57, 53, 0.2);
+}
+
+body.dark .history-pdf-button:hover {
+  background-color: #13b153;
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
+}

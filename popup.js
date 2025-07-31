@@ -204,7 +204,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ai_button.disabled = false;
     saveAnalysisHistory({ site: domain, type: "security", ...response });
 
-    downloadPdf(response, site_url);
+    download_button.addEventListener("click", () => {
+      downloadPdf(response, site_url);
+    });
 
     ai_button.onclick = () => {
       explanation_content.innerText = "";
@@ -263,16 +265,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return "danger";
     };
 
-    performance_statuses["Performans"] = map_status(
+    performance_statuses["Performans "] = map_status(
       page_speed_scores.performance
     );
-    performance_statuses["Erişilebilirlik"] = map_status(
+    performance_statuses["Erişilebilirlik "] = map_status(
       page_speed_scores.accessibility
     );
     performance_statuses["En İyi Uygulamalar"] = map_status(
       page_speed_scores.bestPractices
     );
-    performance_statuses["SEO"] = map_status(page_speed_scores.seo);
+    performance_statuses["SEO "] = map_status(page_speed_scores.seo);
 
     Object.entries(performance_statuses).forEach(([title, status]) => {
       const card = createCard(title, status);
@@ -328,7 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
       pageSpeed: page_speed_scores,
     });
 
-    downloadPdf(page_speed_scores, site_url);
+    download_button.addEventListener("click", () => {
+      downloadPdf(page_speed_scores, site_url);
+    });
 
     ai_button.onclick = () => {
       explanation_content.innerText = "";
