@@ -4,6 +4,7 @@ const filter_button = document.getElementById("filter_button");
 const reset_filter_button = document.getElementById("reset_filter_button");
 const start_date_input = document.getElementById("start_date");
 const end_date_input = document.getElementById("end_date");
+const type_filter_select = document.getElementById("type_filter");
 
 export const filterComponent = () => {
   filter_button.addEventListener("click", () => {
@@ -18,12 +19,18 @@ export const filterComponent = () => {
       alert("Bitiş tarihi, başlangıç tarihinden küçük olamaz ");
       return;
     }
-    displayHistory(start_date, end_date);
+    displayHistory(start_date, end_date, null);
+  });
+
+  type_filter_select.addEventListener("change", () => {
+    const selectedType = type_filter_select.value;
+    displayHistory(null, null, selectedType);
   });
 
   reset_filter_button.addEventListener("click", () => {
     start_date_input.value = "";
     end_date_input.value = "";
+    type_filter_select.value = "";
     displayHistory();
   });
 };

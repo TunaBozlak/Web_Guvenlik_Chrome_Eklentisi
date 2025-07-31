@@ -17,30 +17,39 @@ export const saveAnalysisHistory = (result) => {
   });
 };
 
-export const displayHistory = (start_date = null, end_date = null) => {
+export const displayHistory = (
+  start_date = null,
+  end_date = null,
+  selected_type = null
+) => {
   chrome.storage.local.get("history", (data) => {
     history_div.innerHTML = "";
     const history = data.history || [];
 
     const filtered_history = history.filter((entry) => {
-      if (!start_date || !end_date) {
-        return true;
-      }
+      let dateMatch = true;
+      let typeMatch = true;
 
-      const dateString = entry.date;
-      const [datePart, timePart] = dateString.split(" ");
-      const [day, month, year] = datePart.split(".").map(Number);
-      const [hour, minute, second] = timePart.split(":").map(Number);
-      const entry_date = new Date(year, month - 1, day, hour, minute, second);
+      if (start_date && end_date) {
+        const dateString = entry.date;
+        const [datePart, timePart] = dateString.split(" ");
+        const [day, month, year] = datePart.split(".").map(Number);
+        const [hour, minute, second] = timePart.split(":").map(Number);
+        const entry_date = new Date(year, month - 1, day, hour, minute, second);
 
-      if (isNaN(entry_date.getTime())) {
-        console.warn(
-          "Geçersiz tarih formatı algılandı (manuel parse sonrası):",
-          entry.date
-        );
-        return false;
+        if (isNaN(entry_date.getTime())) {
+          console.warn(
+            "Geçersiz tarih formatı algılandı (manuel parse sonrası):",
+            entry.date
+          );
+          return false;
+        }
+        dateMatch = entry_date >= start_date && entry_date <= end_date;
       }
-      return entry_date >= start_date && entry_date <= end_date;
+      if (selected_type) {
+        typeMatch = entry.result?.type === selected_type;
+      }
+      return dateMatch && typeMatch;
     });
 
     if (filtered_history.length === 0) {

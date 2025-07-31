@@ -415,3 +415,10 @@ body.dark .history-pdf-button:hover {
   background-color: #13b153;
   box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
+
+.select {
+  width: 150px;
+  height: 30px;
+  border-radius: 6px;
+  margin-left: 5px;
+}
