@@ -48,6 +48,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const results_content = document.getElementById("results-content");
   const explanation_content = document.getElementById("explanation-content");
 
+  const copy_button = document.createElement("button");
+  copy_button.textContent = "Kopyala";
+  copy_button.classList.add("copy-button");
+
+  const copyResults = (data) => {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    copy_button.textContent = "Kopyalandı!";
+    setTimeout(() => (copy_button.textContent = "Kopyala"), 1500);
+  };
+
   const performSecurityAnalysis = async () => {
     const startTime = Date.now();
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -214,12 +224,24 @@ document.addEventListener("DOMContentLoaded", () => {
     item.classList.add("item");
 
     const title = document.createElement("div");
-    title.innerHTML =
-      "<strong>Analiz Raporu</strong> <span style='float:right;'>&#9660;</span>";
-    item.appendChild(title);
+    title.innerHTML = "<strong>Analiz Raporu</strong> ";
 
-    const arrow = title.querySelector("span");
-    item.addEventListener("click", () => {
+    const arrow = document.createElement("span");
+    arrow.innerHTML = "&#9660;";
+    arrow.style.marginLeft = "8px";
+    title.appendChild(arrow);
+
+    const headerRow = document.createElement("div");
+    headerRow.style.display = "flex";
+    headerRow.style.justifyContent = "space-between";
+    headerRow.style.alignItems = "center";
+    headerRow.appendChild(title);
+    headerRow.appendChild(copy_button);
+
+    item.appendChild(headerRow);
+    copy_button.addEventListener("click", () => copyResults(response));
+
+    title.addEventListener("click", () => {
       details.style.display =
         details.style.display === "none" ? "block" : "none";
       arrow.innerHTML =
@@ -337,12 +359,24 @@ document.addEventListener("DOMContentLoaded", () => {
     item.classList.add("item");
 
     const title = document.createElement("div");
-    title.innerHTML =
-      "<strong>Performans Raporu</strong> <span style='float:right;'>&#9660;</span>";
-    item.appendChild(title);
+    title.innerHTML = "<strong>Performans Raporu</strong> ";
 
-    const arrow = title.querySelector("span");
-    item.addEventListener("click", () => {
+    const arrow = document.createElement("span");
+    arrow.innerHTML = "&#9660;";
+    arrow.style.marginLeft = "8px";
+    title.appendChild(arrow);
+
+    const headerRow = document.createElement("div");
+    headerRow.style.display = "flex";
+    headerRow.style.justifyContent = "space-between";
+    headerRow.style.alignItems = "center";
+    headerRow.appendChild(title);
+    headerRow.appendChild(copy_button);
+
+    item.appendChild(headerRow);
+    copy_button.addEventListener("click", () => copyResults(page_speed_scores));
+
+    title.addEventListener("click", () => {
       details.style.display =
         details.style.display === "none" ? "block" : "none";
       arrow.innerHTML =
