@@ -73,10 +73,39 @@ export const displayHistory = (
       const domain = entry.result?.site || "Bilinmeyen Site";
       const type =
         entry.result?.type === "performance" ? " (Performans)" : " (Güvenlik)";
+
+      let scoreText = "";
+      if (
+        entry.result?.type === "security" &&
+        entry.result?.securityScore !== undefined
+      ) {
+        scoreText = `<span style="color: ${
+          entry.result.securityScore >= 80
+            ? "green"
+            : entry.result.securityScore >= 50
+            ? "orange"
+            : "red"
+        }; font-weight:bold;">Skor: ${entry.result.securityScore}</span>`;
+      }
+      if (
+        entry.result?.type === "performance" &&
+        entry.result?.pageSpeed?.performance !== undefined
+      ) {
+        scoreText = `<span style="color: ${
+          entry.result.pageSpeed.performance >= 80
+            ? "green"
+            : entry.result.pageSpeed.performance >= 50
+            ? "orange"
+            : "red"
+        }; font-weight:bold;">Skor: ${
+          entry.result.pageSpeed.performance
+        }</span>`;
+      }
+
       leftPart.innerHTML = `
-          <div style="font-weight: bold;">${domain}${type}</div>
-          <div style="font-size: 12px; color: gray;">${entry.date}</div>
-        `;
+      <div style="font-weight: bold;">${domain}${type} ${scoreText}</div>
+      <div style="font-size: 12px; color: gray;">${entry.date}</div>
+    `;
 
       const rightPart = document.createElement("div");
       rightPart.style.display = "flex";

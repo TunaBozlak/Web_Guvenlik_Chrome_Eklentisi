@@ -202,8 +202,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const domain = new URL(site_url).origin;
     download_button.disabled = false;
     ai_button.disabled = false;
-    saveAnalysisHistory({ site: domain, type: "security", ...response });
-
+    saveAnalysisHistory({
+      site: domain,
+      type: "security",
+      securityScore: score,
+      ...response,
+    });
     download_button.addEventListener("click", () => {
       downloadPdf(response, site_url);
     });
@@ -260,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const performance_statuses = {};
     const map_status = (score) => {
-      if (score >= 90) return "safe";
+      if (score >= 80) return "safe";
       if (score >= 50) return "warning";
       return "danger";
     };
