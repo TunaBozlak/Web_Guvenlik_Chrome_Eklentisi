@@ -459,15 +459,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 ),
             },
             {
-              name: "UIkit",
-              test: () => classList.some((c) => /^uk-/.test(c)),
-            },
-            {
-              name: "Shoelace",
-              test: () =>
-                !!document.querySelector("sl-button, sl-input, sl-dialog"),
-            },
-            {
               name: "Carbon Design",
               test: () => classList.some((c) => /^bx--/.test(c)),
             },

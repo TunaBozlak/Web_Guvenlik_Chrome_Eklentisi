@@ -9,6 +9,35 @@ import { saveAnalysisHistory } from "./components/history.js";
 import { changeTheme } from "./components/theme.js";
 import { downloadPdf } from "./components/download.js";
 
+const frameworks = {
+  React: "./images/framework/react.png",
+  Angular: "./images/framework/angular.png",
+  "Vue.js": "./images/framework/vue.png",
+  "Next.js": "./images/framework/next.png",
+  jQuery: "./images/framework/jquery.png",
+  Svelte: "./images/framework/svelte.png",
+  "Nuxt.js": "./images/framework/nuxt.png",
+  WordPress: "./images/framework/wordpress.png",
+  Preact: "./images/framework/preact.png",
+  "Alpine.js": "./images/framework/alpine.png",
+  "Ember.js": "./images/framework/ember.png",
+  Qwik: "./images/framework/qwik.png",
+  Astro: "./images/framework/astro.png",
+  Inferno: "./images/framework/inferno.png",
+};
+
+const ui_frameworks = {
+  "Tailwind CSS": "./images/ui_framework/tailwind.png",
+  Bootstrap: "./images/ui_framework/bootstrap.png",
+  "Material UI (MUI)": "./images/ui_framework/materialui.png",
+  Bulma: "./images/ui_framework/bulma.png",
+  Foundation: "./images/ui_framework/foundation.png",
+  "Ant Design": "./images/ui_framework/antdesing.png",
+  "Chakra UI": "./images/ui_framework/chakraui.png",
+  PrimeFlex: "./images/ui_framework/primeflex.png",
+  "Carbon Design": "./images/ui_framework/carbondesign.png",
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   const analysis_button = document.getElementById("analysis_button");
   const download_button = document.getElementById("download_pdf");
@@ -112,7 +141,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         li.style.marginBottom = "5px";
         li.style.fontSize = "1.1em";
-        li.innerHTML = `✨ <span style="font-weight: bold; color: #4CAF50;">${
+        const logoPath = frameworks[framework.name];
+        const logoImg = logoPath
+          ? `<img src="${logoPath}" alt="${framework.name}" style="width:20px;vertical-align:middle;margin-right:6px;">`
+          : "";
+        li.innerHTML = `${logoImg}<span style="font-weight: bold; color: #4CAF50;">${
           framework.name
         } ${
           framework.version ? framework.version : "(Versiyon Bilinmiyor)"
@@ -144,7 +177,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         li.style.marginBottom = "5px";
         li.style.fontSize = "1.1em";
-        li.innerHTML = `🎨 <span style="font-weight: bold; color: #007bff;">${kit}</span>`;
+        const logoPath = ui_frameworks[kit];
+        const logoImg = logoPath
+          ? `<img src="${logoPath}" alt="${kit}" style="width:20px;vertical-align:middle;margin-right:6px;">`
+          : "";
+        li.innerHTML = `${logoImg}<span style="font-weight: bold; color: #007bff;">${kit}</span>`;
         ul.appendChild(li);
       });
       results_content.appendChild(ul);
