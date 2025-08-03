@@ -89,17 +89,22 @@ export const displayHistory = (
       }
       if (
         entry.result?.type === "performance" &&
-        entry.result?.pageSpeed?.performance !== undefined
+        entry.result?.pageSpeed !== undefined
       ) {
+        const ps = entry.result.pageSpeed;
+        const scores = [
+          ps.performance,
+          ps.accessibility,
+          ps.bestPractices,
+          ps.seo,
+        ].filter((v) => typeof v === "number");
+        const avg =
+          scores.length > 0
+            ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+            : 0;
         scoreText = `<span style="color: ${
-          entry.result.pageSpeed.performance >= 80
-            ? "green"
-            : entry.result.pageSpeed.performance >= 50
-            ? "orange"
-            : "red"
-        }; font-weight:bold;">Skor: ${
-          entry.result.pageSpeed.performance
-        }</span>`;
+          avg >= 80 ? "green" : avg >= 50 ? "orange" : "red"
+        }; font-weight:bold;">Skor: ${avg}</span>`;
       }
 
       leftPart.innerHTML = `
