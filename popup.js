@@ -384,8 +384,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const details = document.createElement("div");
+    details.classList.add("details");
     details.style.display = "none";
-    details.style.marginTop = "8px";
     details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
       page_speed_scores,
       null,

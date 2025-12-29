@@ -37,13 +37,7 @@ export const displayHistory = (
         const [hour, minute, second] = timePart.split(":").map(Number);
         const entry_date = new Date(year, month - 1, day, hour, minute, second);
 
-        if (isNaN(entry_date.getTime())) {
-          console.warn(
-            "Geçersiz tarih formatı algılandı (manuel parse sonrası):",
-            entry.date
-          );
-          return false;
-        }
+        if (isNaN(entry_date.getTime())) return false;
         dateMatch = entry_date >= start_date && entry_date <= end_date;
       }
       if (selected_type) {
@@ -53,7 +47,7 @@ export const displayHistory = (
     });
 
     if (filtered_history.length === 0) {
-      history_div.innerHTML = "Geçmiş Boş";
+      history_div.innerHTML = `<div style="text-align:center; color:var(--text-secondary); padding:20px;">Geçmiş kaydı bulunamadı.</div>`;
       drawChart([]);
       return;
     }
@@ -62,35 +56,23 @@ export const displayHistory = (
 
     filtered_history.forEach((entry, index) => {
       const item = document.createElement("div");
-      item.classList.add("item");
+      item.classList.add("history-item");
 
       const header = document.createElement("div");
-      header.style.display = "flex";
-      header.style.justifyContent = "space-between";
-      header.style.alignItems = "center";
+      header.classList.add("history-header");
 
-      const leftPart = document.createElement("div");
+      const infoDiv = document.createElement("div");
+      infoDiv.classList.add("history-info");
+
       const domain = entry.result?.site || "Bilinmeyen Site";
-      const type =
-        entry.result?.type === "performance" ? " (Performans)" : " (Güvenlik)";
+      const isPerformance = entry.result?.type === "performance";
 
-      let scoreText = "";
-      if (
-        entry.result?.type === "security" &&
-        entry.result?.securityScore !== undefined
-      ) {
-        scoreText = `<span style="color: ${
-          entry.result.securityScore >= 80
-            ? "green"
-            : entry.result.securityScore >= 50
-            ? "orange"
-            : "red"
-        }; font-weight:bold;">Skor: ${entry.result.securityScore}</span>`;
-      }
-      if (
-        entry.result?.type === "performance" &&
-        entry.result?.pageSpeed !== undefined
-      ) {
+      let scoreHtml = "";
+      let scoreVal = 0;
+
+      if (!isPerformance && entry.result?.securityScore !== undefined) {
+        scoreVal = entry.result.securityScore;
+      } else if (isPerformance && entry.result?.pageSpeed) {
         const ps = entry.result.pageSpeed;
         const scores = [
           ps.performance,
@@ -98,65 +80,79 @@ export const displayHistory = (
           ps.bestPractices,
           ps.seo,
         ].filter((v) => typeof v === "number");
-        const avg =
-          scores.length > 0
-            ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-            : 0;
-        scoreText = `<span style="color: ${
-          avg >= 80 ? "green" : avg >= 50 ? "orange" : "red"
-        }; font-weight:bold;">Skor: ${avg}</span>`;
+        scoreVal = scores.length
+          ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+          : 0;
       }
 
-      leftPart.innerHTML = `
-      <div style="font-weight: bold;">${domain}${type} ${scoreText}</div>
-      <div style="font-size: 12px; color: gray;">${entry.date}</div>
-    `;
+      const scoreColor =
+        scoreVal >= 80 ? "#10b981" : scoreVal >= 50 ? "#f59e0b" : "#ef4444";
 
-      const rightPart = document.createElement("div");
-      rightPart.style.display = "flex";
-      rightPart.style.alignItems = "center";
-      rightPart.style.gap = "8px";
+      infoDiv.innerHTML = `
+        <div class="history-domain">
+          ${domain} 
+          <span style="font-weight:normal; font-size:11px; margin-left:4px; opacity:0.8;">
+            (${isPerformance ? "Performans" : "Güvenlik"})
+          </span>
+        </div>
+        <div class="history-meta">
+          <span>📅 ${entry.date}</span>
+          <span style="color:${scoreColor}; font-weight:700; border:1px solid ${scoreColor}33; padding:1px 6px; border-radius:4px; font-size:10px;">
+            ${scoreVal} Puan
+          </span>
+        </div>
+      `;
 
-      const arrow = document.createElement("span");
-      arrow.innerHTML = "&#9660;";
+      const actionsDiv = document.createElement("div");
+      actionsDiv.classList.add("history-actions");
 
-      const analysis_delete_button = document.createElement("button");
-      analysis_delete_button.textContent = "Sil";
-      analysis_delete_button.classList.add("analysis-delete-button");
-      analysis_delete_button.onclick = (e) => {
+      const pdfBtn = document.createElement("button");
+      pdfBtn.className = "btn-icon-small";
+      pdfBtn.innerHTML = "⬇";
+      pdfBtn.title = "Raporu İndir";
+      pdfBtn.onclick = (e) => {
+        e.stopPropagation();
+        downloadPdf(entry.result, entry.result.site);
+      };
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn-icon-small delete";
+      delBtn.innerHTML = "🗑";
+      delBtn.title = "Kaydı Sil";
+      delBtn.onclick = (e) => {
         e.stopPropagation();
         deleteAnalysis(index);
       };
 
-      const download_button = document.createElement("button");
-      download_button.textContent = "PDF";
-      download_button.classList.add("history-pdf-button");
-      download_button.addEventListener("click", () => {
-        downloadPdf(entry.result, entry.result.site);
-      });
-      rightPart.appendChild(download_button);
+      const arrow = document.createElement("span");
+      arrow.innerHTML = "&#9660;";
+      arrow.style.fontSize = "10px";
+      arrow.style.color = "var(--text-secondary)";
+      arrow.style.marginLeft = "4px";
 
-      rightPart.appendChild(analysis_delete_button);
-      rightPart.appendChild(arrow);
-      header.appendChild(leftPart);
-      header.appendChild(rightPart);
+      actionsDiv.appendChild(pdfBtn);
+      actionsDiv.appendChild(delBtn);
+      actionsDiv.appendChild(arrow);
+
+      header.appendChild(infoDiv);
+      header.appendChild(actionsDiv);
       item.appendChild(header);
 
       const details = document.createElement("div");
+      details.classList.add("history-details");
       details.style.display = "none";
-      details.style.marginTop = "8px";
-      details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
+      details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family:monospace;">${JSON.stringify(
         entry.result,
         null,
         2
       )}</pre>`;
+
       item.appendChild(details);
 
-      item.addEventListener("click", () => {
-        details.style.display =
-          details.style.display === "none" ? "block" : "none";
-        arrow.innerHTML =
-          details.style.display === "none" ? "&#9660;" : "&#9650;";
+      header.addEventListener("click", () => {
+        const isHidden = details.style.display === "none";
+        details.style.display = isHidden ? "block" : "none";
+        arrow.innerHTML = isHidden ? "&#9650;" : "&#9660;";
       });
 
       history_div.appendChild(item);
