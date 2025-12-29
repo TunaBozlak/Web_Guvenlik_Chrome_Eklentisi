@@ -1,62 +1,52 @@
 export const createCard = (title, status) => {
   const tooltipDescriptions = {
-    "HTTPS ":
-      "HTTPS, iletişimi şifreleyerek verilerin güvenliğini sağlar. HTTP yerine kullanılmalıdır.",
+    "HTTPS ": "HTTPS, iletişimi şifreleyerek verilerin güvenliğini sağlar.",
     "Strict-Transport-Security":
-      "Tarayıcıya bu siteye yalnızca HTTPS ile bağlanması gerektiğini bildirir.",
+      "Tarayıcıya yalnızca HTTPS ile bağlanmasını söyler.",
     "Content-Security-Policy":
-      "CSP, hangi kaynaklardan içerik yüklenebileceğini belirleyerek XSS gibi saldırıları engeller.",
-    "X-Frame-Options":
-      "Sayfanızın başka sitelerde iframe olarak yüklenmesini engelleyerek clickjacking'e karşı koruma sağlar.",
-    "Virustotal ":
-      "Site, VirusTotal veritabanında kötü amaçlı içerik barındırıp barındırmadığı açısından analiz edilir.",
-    "Çerez Güvenliği":
-      "Çerezlerin Secure, HttpOnly ve SameSite gibi özelliklerle korunduğunu kontrol eder.",
+      "XSS gibi saldırılara karşı kaynak kısıtlaması yapar.",
+    "X-Frame-Options": "Clickjacking saldırılarını engeller.",
+    "Virustotal ": "Site kötü amaçlı içerik açısından analiz edilir.",
+    "Çerez Güvenliği": "Secure, HttpOnly ve SameSite ayarları kontrol edilir.",
     "JavaScript Riskleri":
-      "Sayfada tehlikeli veya şüpheli JavaScript işlevleri (örneğin eval()) kullanılıp kullanılmadığını analiz eder.",
-    "Performans ":
-      "Sayfa hızı, kullanıcı deneyimi ve kaynakların yüklenme süresine göre genel performansı gösterir.",
-    "Erişilebilirlik ":
-      "Site içeriğinin engelli kullanıcılar tarafından erişilebilir olup olmadığını değerlendirir.",
-    "En İyi Uygulamalar":
-      "Modern web standartlarına ve güvenlik uygulamalarına uygunluğu denetler.",
-    "SEO ":
-      "Sayfanın arama motorları tarafından ne kadar iyi taranabilir ve dizine eklenebilir olduğunu gösterir.",
+      "eval, document.write gibi riskli fonksiyonlar analiz edilir.",
+    "Performans ": "Sayfa hız ve deneyim skorları.",
+    "Erişilebilirlik ": "Engelli kullanıcı uyumluluğu.",
+    "En İyi Uygulamalar": "Modern web standartları kontrol edilir.",
+    "SEO ": "Arama motoru uyumluluğu.",
   };
 
   const card = document.createElement("div");
-  card.classList.add("security-card", "tooltip");
+  card.className = `security-card ${status}`;
 
-  const icon = document.createElement("span");
-  icon.style.fontSize = "18px";
-
-  let color, iconSymbol;
-  if (status === "safe") {
-    color = "green";
-    iconSymbol = "🎉";
-  } else if (status === "warning") {
-    color = "orange";
-    iconSymbol = "⚠️";
-  } else {
-    color = "red";
-    iconSymbol = "💣";
-  }
-
-  card.style.borderColor = color;
-  card.style.color = color;
+  const left = document.createElement("div");
+  left.className = "card-left";
 
   const titleSpan = document.createElement("span");
+  titleSpan.className = "card-title";
   titleSpan.textContent = title;
+
+  const dot = document.createElement("span");
+  dot.className = `status-dot ${status}`;
+
+  left.appendChild(dot);
+  left.appendChild(titleSpan);
+
+  const badge = document.createElement("span");
+  badge.className = `status-badge ${status}`;
+  badge.textContent =
+    status === "safe" ? "Güvenli" : status === "warning" ? "Uyarı" : "Riskli";
+
+  card.appendChild(left);
+  card.appendChild(badge);
 
   const tooltipText = tooltipDescriptions[title];
   if (tooltipText) {
-    const tooltipSpan = document.createElement("span");
-    tooltipSpan.className = "tooltiptext";
-    tooltipSpan.textContent = tooltipText;
-    card.appendChild(tooltipSpan);
+    const tooltip = document.createElement("div");
+    tooltip.className = "tooltip-modern";
+    tooltip.textContent = tooltipText;
+    card.appendChild(tooltip);
   }
 
-  card.appendChild(titleSpan);
-  card.appendChild(icon);
   return card;
 };

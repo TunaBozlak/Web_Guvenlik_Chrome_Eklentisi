@@ -58,7 +58,7 @@ export const drawChart = (trendData) => {
       plugins: {
         legend: {
           labels: {
-            color: "#222",
+            color: "#555",
             font: { size: 13, weight: "bold" },
           },
         },
@@ -85,6 +85,10 @@ export const drawChart = (trendData) => {
         y: {
           beginAtZero: true,
           max: 100,
+          ticks: {
+            stepSize: 20,
+            color: "#666",
+          },
         },
       },
     },

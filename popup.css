@@ -10,7 +10,6 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
 h2,
 h3 {
   color: #1a2b3c;
@@ -20,7 +19,38 @@ h3 {
   padding-bottom: 10px;
   font-weight: 600;
 }
-
+.popup-header {
+  display: flex;
+  align-items: center; /* 🔥 DİKEY HİZALAMA */
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.popup-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  background: #eef2f7;
+}
+.theme-toggle:hover {
+  background: #e1e7ef;
+  transform: scale(1.05);
+} /* 🌙 DARK MODE */
+body.dark .theme-toggle {
+  background: #2a2a2a;
+}
+body.dark .theme-toggle:hover {
+  background: #3a3a3a;
+}
 button {
   background-color: #007bff;
   color: white;
@@ -35,19 +65,16 @@ button {
   margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 }
-
 button:hover {
   background-color: #0069d9;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
-
 button:active {
   background-color: #0056b3;
   transform: translateY(0);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
-
 button:disabled {
   background-color: #ced4da;
   cursor: not-allowed;
@@ -55,17 +82,14 @@ button:disabled {
   box-shadow: none;
   opacity: 0.7;
 }
-
 #delete_history {
   background-color: #dc3545;
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 }
-
 #delete_history:hover {
   background-color: #c82333;
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
-
 #results,
 #explanation,
 #history {
@@ -79,7 +103,6 @@ button:disabled {
   transition: background-color 0.3s ease, border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
-
 #history {
   max-height: 200px;
   overflow-y: auto;
@@ -94,47 +117,38 @@ button:disabled {
   border-radius: 10px;
   border: 2px solid #f1f1f1;
 }
-
 body.dark {
   background-color: #3c4043;
   color: #f0f0f0;
 }
-
 body.dark h2,
 body.dark h3 {
   color: #ffffff;
   border-color: #444;
 }
-
 body.dark button {
   background-color: #1e88e5;
   box-shadow: 0 2px 8px rgba(30, 136, 229, 0.2);
 }
-
 body.dark button:hover {
   background-color: #1565c0;
   box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
 }
-
 body.dark button:active {
   background-color: #0d47a1;
 }
-
 body.dark button:disabled {
   background-color: #4a4a4a;
   color: #999999;
 }
-
 body.dark #delete_history {
   background-color: #e53935;
   box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
 }
-
 body.dark #delete_history:hover {
   background-color: #b71c1c;
   box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
 }
-
 body.dark #results,
 body.dark #explanation,
 body.dark #history {
@@ -142,7 +156,13 @@ body.dark #history {
   border-color: #333;
   box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
 }
-
+body.dark .security-card {
+  background: #242424;
+  color: #f0f0f0;
+}
+body.dark .card-title {
+  color: #ffffff;
+}
 .analysis-delete-button {
   background-color: #dc3545;
   color: white;
@@ -155,22 +175,18 @@ body.dark #history {
   transition: background-color 0.3s ease-in-out;
   box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
 }
-
 .analysis-delete-button:hover {
   background-color: #c82333;
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
-
 body.dark .analysis-delete-button {
   background-color: #e53935;
   box-shadow: 0 1px 4px rgba(229, 57, 53, 0.2);
 }
-
 body.dark .analysis-delete-button:hover {
   background-color: #b71c1c;
   box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
-
 #filter {
   background-color: #ffffff;
   border: 1px solid #e9ecef;
@@ -181,14 +197,12 @@ body.dark .analysis-delete-button:hover {
   transition: background-color 0.3s ease, border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
-
 #filter label {
   display: block;
   margin-bottom: 5px;
   font-weight: 600;
   color: #2c3e50;
 }
-
 #filter input[type="date"] {
   width: 100%;
   padding: 8px 10px;
@@ -206,7 +220,26 @@ body.dark .analysis-delete-button:hover {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Hafif gölge */
   outline: none; /* Odaklandığında varsayılan dış hattı kaldır */
 }
-
+body.dark .status-badge.safe {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+body.dark .status-badge.warning {
+  background: rgba(243, 156, 18, 0.15);
+  color: #f39c12;
+}
+body.dark .status-badge.danger {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+body.dark .api-card {
+  background-color: #1f1f1f;
+  border-color: #333;
+  color: #f0f0f0;
+}
+body.dark .api-ul {
+  color: #dcdcdc;
+}
 #filter button {
   padding: 8px 12px;
   border: none;
@@ -219,74 +252,110 @@ body.dark .analysis-delete-button:hover {
   transition: background-color 0.3s ease-in-out, transform 0.1s ease;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 }
-
 #filter button:hover {
   background-color: #0056b3;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
-
 #filter button:active {
   background-color: #004085;
   transform: translateY(0);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
-
 body.dark #filter {
   background-color: #1e1e1e;
   border-color: #333;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 }
-
 body.dark #filter label {
   color: #f0f0f0;
 }
-
 body.dark #filter input[type="date"] {
   background-color: #333;
   color: #f0f0f0;
   border-color: #555;
 }
-
 body.dark #filter input[type="date"]:focus {
   border-color: #1e88e5;
   box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.25);
 }
-
 body.dark #filter button {
   background-color: #1e88e5;
   box-shadow: 0 2px 8px rgba(30, 136, 229, 0.2);
 }
-
 body.dark #filter button:hover {
   background-color: #1565c0;
   box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
 }
-
 body.dark #filter button:active {
   background-color: #0d47a1;
 }
-
 .security-card {
-  border: 2px solid;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
-  cursor: default;
-  will-change: box-shadow, transform, border-color;
+  margin-bottom: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 .security-card:hover {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  transform: translateY(-4px);
-  border-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
 }
-
+.security-card.safe {
+  border-left: 5px solid #2ecc71;
+}
+.security-card.warning {
+  border-left: 5px solid #f39c12;
+}
+.security-card.danger {
+  border-left: 5px solid #e74c3c;
+}
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.status-dot.safe {
+  background: #2ecc71;
+}
+.status-dot.warning {
+  background: #f39c12;
+}
+.status-dot.danger {
+  background: #e74c3c;
+}
+.status-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.status-badge.safe {
+  background: #eafaf1;
+  color: #27ae60;
+}
+.status-badge.warning {
+  background: #fff4e5;
+  color: #e67e22;
+}
+.status-badge.danger {
+  background: #fdecea;
+  color: #c0392b;
+}
 .api-card {
   border: 1px solid #ddd;
   border-radius: 10px;
@@ -296,28 +365,24 @@ body.dark #filter button:active {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); /* Daha belirgin gölge */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .api-ul {
   padding-left: 22px;
   color: #444;
   font-size: 0.95em;
   line-height: 1.4;
 }
-
 .item {
   border: 1px solid #ccc;
   padding: 8px;
   margin-top: 8px;
   cursor: pointer;
 }
-
 .loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: 20px;
 }
-
 .loader {
   border: 6px solid #f3f3f3;
   border-top: 6px solid #3498db;
@@ -326,7 +391,6 @@ body.dark #filter button:active {
   height: 40px;
   animation: spin 1s linear infinite;
 }
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -335,7 +399,6 @@ body.dark #filter button:active {
     transform: rotate(360deg);
   }
 }
-
 .api-card-v2 {
   max-height: 300px;
   overflow-y: auto;
@@ -344,7 +407,6 @@ body.dark #filter button:active {
   border-radius: 4px;
   margin-top: 10px;
 }
-
 .api-card-v2::-webkit-scrollbar {
   width: 8px;
 }
@@ -353,41 +415,32 @@ body.dark #filter button:active {
   border-radius: 10px;
   border: 2px solid #f1f1f1;
 }
-
 .details {
   display: none;
   margin-top: 8px;
   max-height: 300px;
   overflow-y: auto;
 }
-
-.tooltip {
-  position: relative;
-  cursor: pointer;
-}
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 240px;
-  background-color: #333;
-  color: #fff;
-  text-align: left;
-  border-radius: 6px;
-  padding: 8px;
+.tooltip-modern {
   position: absolute;
-  z-index: 1;
-  bottom: 110%;
-  left: 50%;
-  transform: translateX(-10%);
-  opacity: 0;
-  transition: opacity 0.3s;
+  bottom: 120%;
+  left: 16px;
+  width: 260px;
+  background: #111;
+  color: #fff;
   font-size: 12px;
-  line-height: 1.4;
+  padding: 10px 12px;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(5px);
+  transition: all 0.2s ease;
+  z-index: 10;
 }
-.tooltip:hover .tooltiptext {
-  visibility: visible;
+.security-card:hover .tooltip-modern {
   opacity: 1;
+  transform: translateY(0);
 }
-
 .history-pdf-button {
   background-color: #0ee447;
   color: white;
@@ -400,29 +453,24 @@ body.dark #filter button:active {
   transition: background-color 0.3s ease-in-out;
   box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
 }
-
 .history-pdf-button:hover {
   background-color: #19d34b;
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
-
 body.dark .history-pdf-button {
   background-color: #14cb5d;
   box-shadow: 0 1px 4px rgba(229, 57, 53, 0.2);
 }
-
 body.dark .history-pdf-button:hover {
   background-color: #13b153;
   box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
-
 .select {
   width: 150px;
   height: 30px;
   border-radius: 6px;
   margin-left: 5px;
 }
-
 .copy-button {
   background-color: #0ee447;
   color: white;
@@ -435,17 +483,14 @@ body.dark .history-pdf-button:hover {
   transition: background-color 0.3s ease-in-out;
   box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
 }
-
 .copy-button:hover {
   background-color: #19d34b;
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
-
 body.dark .copy-button {
   background-color: #14cb5d;
   box-shadow: 0 1px 4px rgba(229, 57, 53, 0.2);
 }
-
 body.dark .copy-button:hover {
   background-color: #13b153;
   box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
