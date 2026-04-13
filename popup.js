@@ -90,186 +90,234 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const endTime = Date.now();
     const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
-    const duration_div = document.createElement("div");
-    duration_div.innerHTML = `<strong>Analiz Süresi:</strong> ${durationInSeconds} saniye`;
-    duration_div.style.marginBottom = "8px";
-    results_content.prepend(duration_div);
 
-    if (!response) {
-      results_content.innerHTML =
-        "<p>Güvenlik analizi sonuçları alınamadı.</p>";
+    const headerContainer = document.createElement("div");
+    headerContainer.style.marginBottom = "15px";
+    headerContainer.innerHTML = `<div style="font-size: 0.9em; color: #888;">⏳ Analiz Süresi: ${durationInSeconds} saniye</div>`;
+    results_content.appendChild(headerContainer);
+
+    if (!response || response.error) {
+      results_content.innerHTML = `<p style="color:red;">Analiz başarısız: ${response?.details || "Bilinmeyen Hata"}</p>`;
       return;
     }
 
+    const createAlertBox = (title, items, bgColor, textColor, icon) => {
+      if (!items || items.length === 0) return null;
+      const box = document.createElement("div");
+      box.style.background = bgColor;
+      box.style.color = textColor;
+      box.style.padding = "10px";
+      box.style.borderRadius = "8px";
+      box.style.marginBottom = "10px";
+      box.style.border = `1px solid ${textColor}`;
+
+      let listHtml = items.map((i) => `<li>${i}</li>`).join("");
+      box.innerHTML = `<strong style="display:flex; align-items:center; gap:5px;">${icon} ${title}</strong>
+                       <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size:0.9em;">${listHtml}</ul>`;
+      return box;
+    };
+
+    if (response.domainAnalysis && response.domainAnalysis.isSuspicious) {
+      const phishingBox = createAlertBox(
+        "Kritik Uyarı: Şüpheli Alan Adı!",
+        [
+          response.domainAnalysis.warning,
+          `Tespit edilen: ${response.domainAnalysis.hostname}`,
+        ],
+        "#ffebee",
+        "#d32f2f",
+        "🚨",
+      );
+      if (phishingBox) results_content.appendChild(phishingBox);
+    }
+
+    const secretsBox = createAlertBox(
+      "Hassas Veri Sızıntısı Tespit Edildi!",
+      response.leakedSecrets,
+      "#fff3e0",
+      "#e65100",
+      "🔑",
+    );
+    if (secretsBox) results_content.appendChild(secretsBox);
+
+    const mixedContentBox = createAlertBox(
+      "Güvenlik Açığı: Karma İçerik (Mixed Content)",
+      response.mixedContent,
+      "#fff8e1",
+      "#f57f17",
+      "⚠️",
+    );
+    if (mixedContentBox) results_content.appendChild(mixedContentBox);
+
+    const riskyFuncsBox = createAlertBox(
+      "Tehlikeli JS Fonksiyonları Tespit Edildi",
+      response.riskyFunctions,
+      "#f3e5f5",
+      "#7b1fa2",
+      "⚡",
+    );
+    if (riskyFuncsBox) results_content.appendChild(riskyFuncsBox);
+
+    if (response.cookies && response.cookies.length > 0) {
+      const riskyCookies = response.cookies.filter(
+        (c) => c.risks && c.risks.length > 0,
+      );
+      if (riskyCookies.length > 0) {
+        const cookieWarnings = riskyCookies.map(
+          (c) => `<strong>${c.name}</strong>: ${c.risks.join(", ")}`,
+        );
+        const cookieBox = createAlertBox(
+          "Riskli Çerez Yapılandırmaları",
+          cookieWarnings,
+          "#e8f4fd",
+          "#0277bd",
+          "🍪",
+        );
+        if (cookieBox) results_content.appendChild(cookieBox);
+      }
+    }
+
     const statuses = analyzeSecurityStatus(response, site_url);
+    const score = calculateSecurityScore(statuses);
+
+    const score_div = document.createElement("div");
+    score_div.innerHTML = `
+      <div style="font-size: 1.1em; margin-bottom: 5px;"><strong>Genel Güvenlik Skoru:</strong> ${score} / 100</div>
+      <div style="background: #e0e0e0; border-radius: 8px; overflow: hidden; width: 100%; height: 12px; margin-bottom: 15px;">
+        <div style="
+          width: ${score}%;
+          height: 100%;
+          background: ${score >= 80 ? "#4caf50" : score >= 50 ? "#ff9800" : "#f44336"};
+          transition: width 0.5s ease-in-out;
+        "></div>
+      </div>
+    `;
+    headerContainer.appendChild(score_div);
 
     Object.entries(statuses).forEach(([title, status]) => {
       const card = createCard(title, status);
       results_content.appendChild(card);
     });
 
-    const apiHeader = document.createElement("h3");
-    apiHeader.textContent = "API Endpoint Analizi";
-    apiHeader.style.marginTop = "20px";
-    results_content.appendChild(apiHeader);
-
-    const card = document.createElement("div");
-    card.classList.add("api-card-v2");
-    results_content.appendChild(card);
-
     const endpoints = response?.endpoints || [];
+    if (endpoints.length > 0) {
+      const apiHeader = document.createElement("h3");
+      apiHeader.textContent = "API Endpoint Analizi";
+      apiHeader.style.marginTop = "20px";
+      apiHeader.style.borderBottom = "1px solid #ccc";
+      results_content.appendChild(apiHeader);
 
-    if (endpoints.length === 0) {
-      const empty = document.createElement("p");
-      empty.textContent = "Gerçek API isteği bulunamadı.";
-      empty.style.color = "#555";
-      card.appendChild(empty);
-    } else {
+      const card = document.createElement("div");
+      card.classList.add("api-card-v2");
+      results_content.appendChild(card);
+
       endpoints.forEach((entry) => {
         const div = document.createElement("div");
         div.classList.add("api-card");
+        div.style.padding = "8px";
+        div.style.background = "var(--card-bg, #f9f9f9)";
+        div.style.marginBottom = "5px";
+        div.style.borderRadius = "4px";
         div.innerHTML = `
-      <div><strong>Method:</strong> <span style="color: #007acc;">${entry.method}</span></div>
-      <div><strong>Status:</strong> ${entry.status}</div>
-      <div><strong>Time:</strong> ${entry.time}</div>
-      <div style="word-break: break-all;"><strong>URL:</strong> ${entry.url}</div>
-    `;
+          <div><span style="color: ${entry.method === "GET" ? "#007acc" : "#d32f2f"}; font-weight:bold;">${entry.method}</span> 
+               <span style="color: ${entry.status >= 400 ? "red" : "green"};">[${entry.status}]</span></div>
+          <div style="word-break: break-all; font-size: 0.85em; font-family: monospace;">${entry.url}</div>
+        `;
         card.appendChild(div);
       });
     }
 
-    const frameworkHeader = document.createElement("h3");
-    frameworkHeader.textContent = "Tespit Edilen Teknolojiler";
-    frameworkHeader.style.marginTop = "20px";
-    results_content.appendChild(frameworkHeader);
+    const renderFrameworks = (title, items, logoMap) => {
+      if (!items || items.length === 0) return;
+      const header = document.createElement("h3");
+      header.textContent = title;
+      header.style.marginTop = "20px";
+      header.style.borderBottom = "1px solid #ccc";
+      results_content.appendChild(header);
 
-    if (response.detectedFrameworks && response.detectedFrameworks.length > 0) {
       const ul = document.createElement("ul");
       ul.style.listStyleType = "none";
       ul.style.paddingLeft = "0";
-      response.detectedFrameworks.forEach((framework) => {
+      ul.style.display = "flex";
+      ul.style.flexWrap = "wrap";
+      ul.style.gap = "10px";
+
+      items.forEach((item) => {
+        const name = typeof item === "string" ? item : item.name;
         const li = document.createElement("li");
-        li.style.marginBottom = "5px";
-        li.style.fontSize = "1.1em";
-        const logoPath = frameworks[framework.name];
+        li.style.display = "flex";
+        li.style.alignItems = "center";
+        li.style.background = "var(--badge-bg, #eee)";
+        li.style.padding = "5px 10px";
+        li.style.borderRadius = "20px";
+        li.style.fontSize = "0.9em";
+
+        const logoPath = logoMap[name];
         const logoImg = logoPath
-          ? `<img src="${logoPath}" alt="${framework.name}" style="width:20px;vertical-align:middle;margin-right:6px;">`
+          ? `<img src="${logoPath}" alt="${name}" style="width:16px; height:16px; margin-right:6px;">`
           : "";
-        li.innerHTML = `${logoImg}<span style="font-weight: bold; color: #4CAF50;">${
-          framework.name
-        } ${
-          framework.version ? framework.version : "(Versiyon Bilinmiyor)"
-        }</span>`;
+        li.innerHTML = `${logoImg}<span style="font-weight: 500;">${name}</span>`;
         ul.appendChild(li);
       });
       results_content.appendChild(ul);
-    } else {
-      const noFrameworkText = document.createElement("p");
-      noFrameworkText.textContent =
-        "Bu sitede belirgin bir JavaScript çerçevesi tespit edilemedi.";
-      noFrameworkText.style.color = "#555";
-      noFrameworkText.style.marginTop = "10px";
-      results_content.appendChild(noFrameworkText);
-    }
+    };
 
-    const uiHeader = document.createElement("h3");
-    uiHeader.textContent = "Tespit Edilen UI Kit ve CSS Framework'leri";
-    uiHeader.style.marginTop = "20px";
-    results_content.appendChild(uiHeader);
-    if (
-      response.detectedUIFrameworks &&
-      response.detectedUIFrameworks.length > 0
-    ) {
-      const ul = document.createElement("ul");
-      ul.style.listStyleType = "none";
-      ul.style.paddingLeft = "0";
-      response.detectedUIFrameworks.forEach((kit) => {
-        const li = document.createElement("li");
-        li.style.marginBottom = "5px";
-        li.style.fontSize = "1.1em";
-        const logoPath = ui_frameworks[kit];
-        const logoImg = logoPath
-          ? `<img src="${logoPath}" alt="${kit}" style="width:20px;vertical-align:middle;margin-right:6px;">`
-          : "";
-        li.innerHTML = `${logoImg}<span style="font-weight: bold; color: #007bff;">${kit}</span>`;
-        ul.appendChild(li);
-      });
-      results_content.appendChild(ul);
-    } else {
-      const noUiText = document.createElement("p");
-      noUiText.textContent =
-        "Bu sitede yaygın bir UI kütüphanesi tespit edilemedi.";
-      noUiText.style.color = "#555";
-      noUiText.style.marginTop = "10px";
-      results_content.appendChild(noUiText);
-    }
-
-    const score = calculateSecurityScore(statuses);
-    const score_div = document.createElement("div");
-    score_div.innerHTML = `
-  <strong>Genel Güvenlik Skoru:</strong> ${score} / 100
-  <div style="background: #eee; border-radius: 8px; overflow: hidden; width: 100%; height: 20px; margin-top: 4px;">
-    <div style="
-      width: ${score}%;
-      height: 100%;
-      background: ${score >= 80 ? "green" : score >= 50 ? "orange" : "red"};
-      transition: width 0.3s ease;
-    "></div>
-  </div>
-`;
-    score_div.style.marginBottom = "10px";
-    results_content.prepend(score_div);
+    renderFrameworks("Teknolojiler", response.detectedFrameworks, frameworks);
+    renderFrameworks(
+      "UI & CSS Kütüphaneleri",
+      response.detectedUIFrameworks,
+      ui_frameworks,
+    );
 
     const item = document.createElement("div");
     item.classList.add("item");
+    item.style.marginTop = "20px";
 
     const title = document.createElement("div");
-    title.innerHTML = "<strong>Analiz Raporu</strong> ";
-
-    const arrow = document.createElement("span");
-    arrow.innerHTML = "&#9660;";
-    arrow.style.marginLeft = "8px";
-    title.appendChild(arrow);
+    title.innerHTML =
+      "<strong>Ham Analiz Raporu (JSON)</strong> <span style='font-size:10px;'>&#9660;</span>";
+    title.style.cursor = "pointer";
 
     const headerRow = document.createElement("div");
     headerRow.style.display = "flex";
     headerRow.style.justifyContent = "space-between";
     headerRow.style.alignItems = "center";
+    headerRow.style.background = "var(--card-bg, #eee)";
+    headerRow.style.padding = "8px";
+    headerRow.style.borderRadius = "5px";
+
     headerRow.appendChild(title);
     headerRow.appendChild(copy_button);
-
     item.appendChild(headerRow);
-    copy_button.addEventListener("click", () => copyResults(response));
-
-    title.addEventListener("click", () => {
-      details.style.display =
-        details.style.display === "none" ? "block" : "none";
-      arrow.innerHTML =
-        details.style.display === "none" ? "&#9660;" : "&#9650;";
-    });
 
     const details = document.createElement("div");
     details.classList.add("details");
-    details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
-      response,
-      null,
-      2
-    )}</pre>`;
+    details.style.display = "none";
+    details.style.marginTop = "10px";
+    details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; background:#222; color:#0f0; padding:10px; border-radius:5px; font-size:11px;">${JSON.stringify(response, null, 2)}</pre>`;
     item.appendChild(details);
     results_content.appendChild(item);
+
+    copy_button.addEventListener("click", () => copyResults(response));
+    title.addEventListener("click", () => {
+      details.style.display =
+        details.style.display === "none" ? "block" : "none";
+    });
 
     const domain = new URL(site_url).origin;
     download_button.disabled = false;
     ai_button.disabled = false;
+
     saveAnalysisHistory({
       site: domain,
       type: "security",
       securityScore: score,
       ...response,
     });
-    download_button.addEventListener("click", () => {
-      downloadPdf(response, site_url);
-    });
+
+    download_button.addEventListener("click", () =>
+      downloadPdf(response, site_url),
+    );
 
     ai_button.onclick = () => {
       explanation_content.innerText = "";
@@ -279,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
         (explanation) => {
           explanation_content.innerText = explanation;
           loading_explanation.style.display = "none";
-        }
+        },
       );
     };
   };
@@ -329,13 +377,13 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     performance_statuses["Performans "] = map_status(
-      page_speed_scores.performance
+      page_speed_scores.performance,
     );
     performance_statuses["Erişilebilirlik "] = map_status(
-      page_speed_scores.accessibility
+      page_speed_scores.accessibility,
     );
     performance_statuses["En İyi Uygulamalar"] = map_status(
-      page_speed_scores.bestPractices
+      page_speed_scores.bestPractices,
     );
     performance_statuses["SEO "] = map_status(page_speed_scores.seo);
 
@@ -389,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
     details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
       page_speed_scores,
       null,
-      2
+      2,
     )}</pre>`;
 
     item.appendChild(details);
@@ -417,7 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
         (explanation) => {
           explanation_content.innerText = explanation;
           loading_explanation.style.display = "none";
-        }
+        },
       );
     };
   };
