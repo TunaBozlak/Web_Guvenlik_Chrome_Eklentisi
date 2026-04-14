@@ -10,6 +10,12 @@ export const createCard = (title, status) => {
     "Çerez Güvenliği": "Secure, HttpOnly ve SameSite ayarları kontrol edilir.",
     "JavaScript Riskleri":
       "eval, document.write gibi riskli fonksiyonlar analiz edilir.",
+    "Hassas Veri Sızıntısı":
+      "Sayfa kaynağında veya yerel hafızada unutulmuş API anahtarları (AWS, JWT vb.) aranır.",
+    "İçerik & Form Güvenliği":
+      "Güvensiz form gönderimleri ve HTTP üzerinden yüklenen güvensiz (Karma) kaynaklar kontrol edilir.",
+    "Oltalama (Phishing)":
+      "Domain adının bilinen markaları (Google, Facebook vb.) taklit edip etmediği kontrol edilir.",
     "Performans ": "Sayfa hız ve deneyim skorları.",
     "Erişilebilirlik ": "Engelli kullanıcı uyumluluğu.",
     "En İyi Uygulamalar": "Modern web standartları kontrol edilir.",

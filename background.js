@@ -21,23 +21,28 @@ chrome.webRequest.onHeadersReceived.addListener(
   ["responseHeaders"],
 );
 
-/*
-const api_key_virus = API_KEY_VIRUS;
+/*const api_key_virus = API_KEY_VIRUS;
 const scanUrlWithVirusTotal = async (url) => {
   const scanUrl = `https://www.virustotal.com/vtapi/v2/url/scan`;
+
   const reportUrl = `https://www.virustotal.com/vtapi/v2/url/report`;
-  
+
   await fetch(scanUrl, {
     method: "POST",
+
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
+
     body: `apikey=${api_key_virus}&url=${encodeURIComponent(url)}`,
   });
-  
-  const reportResponse = await fetch(`${reportUrl}?apikey=${api_key_virus}&resource=${encodeURIComponent(url)}`);
+
+  const reportResponse = await fetch(
+    `${reportUrl}?apikey=${api_key_virus}&resource=${encodeURIComponent(url)}`,
+  );
+
   const reportData = await reportResponse.json();
+
   return reportData;
-};
-*/
+};*/
 
 chrome.webRequest.onCompleted.addListener(
   async (details) => {
@@ -80,6 +85,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const headers =
           (storageData.latestHeaders && storageData.latestHeaders[site_url]) ||
           {};
+
         const securityHeaders = {
           "Content-Security-Policy":
             headers["content-security-policy"] || "Eksik",
@@ -90,9 +96,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         const results = await Promise.allSettled([
           //scanUrlWithVirusTotal(site_url),
-          chrome.cookies.getAll({ url: site_url }), // İndeks 0
+          chrome.cookies.getAll({ url: site_url }),
           chrome.scripting.executeScript({
-            // İndeks 1
             target: { tabId: tabId },
             world: "MAIN",
             func: () => {
@@ -154,7 +159,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 (
                   htmlContent.match(/<script[\s\S]*?>[\s\S]*?<\/script>/g) || []
                 ).join("\n");
-
               secretPatterns.forEach((pattern) => {
                 const match = searchArea.match(pattern.regex);
                 if (match) detectedSecrets.push(pattern.name);
@@ -169,21 +173,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     document.querySelectorAll("link[rel='stylesheet']"),
                   ).map((link) => link.href),
                 ];
-
                 const insecureUrls = allUrls.filter(
                   (url) => url && url.startsWith("http://"),
                 );
-                if (insecureUrls.length > 0) {
+                if (insecureUrls.length > 0)
                   mixedContentIssues.push(
                     `${insecureUrls.length} adet güvensiz (HTTP) kaynak tespit edildi.`,
                   );
-                }
               }
 
               const currentHostname = window.location.hostname;
               let isSuspiciousDomain = false;
               let domainWarning = null;
-
               const suspiciousPatterns = [
                 /g[0oO]{2}gle/,
                 /faceb[0oO]{2}k/,
@@ -203,8 +204,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
 
               const detectedFrameworks = [];
-              const detectedUIFrameworks = [];
-
               const frameworkPatterns = [
                 { name: "React", regex: /react-dom|_REACT_/i },
                 { name: "Next.js", regex: /_next\/static|__NEXT_DATA__/i },
@@ -212,84 +211,175 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 { name: "Angular", regex: /ng-version|ng-app|_ngcontent/i },
                 { name: "WordPress", regex: /wp-content|wp-includes/i },
               ];
-
               frameworkPatterns.forEach((fw) => {
                 if (
                   scriptSrcs.some((s) => fw.regex.test(s)) ||
                   fw.regex.test(htmlContent)
-                ) {
+                )
                   detectedFrameworks.push({ name: fw.name });
-                }
               });
 
               const winProps = Object.keys(window);
 
+              // YENİ: Versiyon Numarası Yakalama Fonksiyonları
+              const getVersion = (obj) =>
+                obj && obj.version ? obj.version : null;
+              const extractVerFromUrl = (url) => {
+                const match = url.match(
+                  /(?:@|v\/|-|\/)([0-9]+\.[0-9]+(?:\.[0-9]+)?)/,
+                );
+                return match ? match[1] : null;
+              };
+
+              // RAM (Window Objesi) Üzerinden Versiyonlu Framework Tespiti
               if (
                 window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
                 winProps.some((p) => p.startsWith("_reactRootContainer"))
               ) {
+                let v = getVersion(window.__REACT_DEVTOOLS_GLOBAL_HOOK__);
+                if (!v && window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers) {
+                  try {
+                    v = Object.values(
+                      window.__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers,
+                    )[0]?.version;
+                  } catch (e) {}
+                }
                 if (!detectedFrameworks.some((f) => f.name === "React"))
-                  detectedFrameworks.push({ name: "React" });
+                  detectedFrameworks.push({ name: "React", version: v });
               }
               if (window.__VUE__ || window.Vue) {
+                let v = getVersion(window.Vue);
                 if (!detectedFrameworks.some((f) => f.name === "Vue.js"))
-                  detectedFrameworks.push({ name: "Vue.js" });
+                  detectedFrameworks.push({ name: "Vue.js", version: v });
               }
               if (window.getAllAngularRootElements || window.ng) {
+                let v =
+                  window.ng?.coreTokens?.VERSION?.full ||
+                  window.ng?.VERSION?.full;
                 if (!detectedFrameworks.some((f) => f.name === "Angular"))
-                  detectedFrameworks.push({ name: "Angular" });
+                  detectedFrameworks.push({ name: "Angular", version: v });
               }
               if (window.Ember || window.EmberENV) {
+                let v = window.Ember?.VERSION;
                 if (!detectedFrameworks.some((f) => f.name === "Ember.js"))
-                  detectedFrameworks.push({ name: "Ember.js" });
+                  detectedFrameworks.push({ name: "Ember.js", version: v });
               }
               if (window.jQuery || window.$) {
+                let v = window.jQuery
+                  ? window.jQuery.fn.jquery
+                  : window.$
+                    ? window.$.fn.jquery
+                    : null;
                 if (!detectedFrameworks.some((f) => f.name === "jQuery"))
-                  detectedFrameworks.push({ name: "jQuery" });
+                  detectedFrameworks.push({ name: "jQuery", version: v });
               }
 
+              // UI CSS Kütüphaneleri Versiyon Tespiti
+              const detectedUIFrameworks = [];
               const allElements = document.querySelectorAll("*");
               const classList = [];
               for (const el of allElements) {
-                if (el.classList && el.classList.length > 0) {
+                if (el.classList && el.classList.length > 0)
                   classList.push(...el.classList);
-                }
               }
 
               const linkHrefs = Array.from(
                 document.querySelectorAll("link[href]"),
               ).map((l) => l.href);
+
+              const twLink = linkHrefs.find((h) => /tailwind/i.test(h));
               const twCount = classList.filter((c) =>
                 /^(tw-|text-|bg-|p-|m-|flex-|grid-|justify-)/.test(c),
               ).length;
-              if (twCount > 5 || linkHrefs.some((h) => /tailwind/i.test(h)))
-                detectedUIFrameworks.push("Tailwind CSS");
+              if (twCount > 5 || twLink) {
+                detectedUIFrameworks.push({
+                  name: "Tailwind CSS",
+                  version: twLink ? extractVerFromUrl(twLink) : null,
+                });
+              }
 
+              const bsLink = linkHrefs.find((h) => /bootstrap/i.test(h));
               if (
                 classList.some((c) =>
                   /^(container|row|col-|btn-|navbar-)/.test(c),
                 ) ||
-                linkHrefs.some((h) => /bootstrap/i.test(h))
+                bsLink
               ) {
-                detectedUIFrameworks.push("Bootstrap");
+                detectedUIFrameworks.push({
+                  name: "Bootstrap",
+                  version: bsLink ? extractVerFromUrl(bsLink) : null,
+                });
               }
+
               if (classList.some((c) => /^Mui/.test(c)))
-                detectedUIFrameworks.push("Material UI");
+                detectedUIFrameworks.push({ name: "Material UI" });
               if (classList.some((c) => /^ant-/.test(c)))
-                detectedUIFrameworks.push("Ant Design");
+                detectedUIFrameworks.push({ name: "Ant Design" });
+
+              const bulmaLink = linkHrefs.find((h) => /bulma/i.test(h));
               if (
                 classList.some((c) =>
                   /^(is-|has-|column|notification)/.test(c),
                 ) &&
-                linkHrefs.some((h) => /bulma/i.test(h))
+                bulmaLink
               ) {
-                detectedUIFrameworks.push("Bulma");
+                detectedUIFrameworks.push({
+                  name: "Bulma",
+                  version: bulmaLink ? extractVerFromUrl(bulmaLink) : null,
+                });
               }
+
+              const storageVulnerabilities = [];
+              try {
+                const checkStorage = (storageObj, storageName) => {
+                  for (let i = 0; i < storageObj.length; i++) {
+                    const key = storageObj.key(i);
+                    const value = storageObj.getItem(key);
+                    if (/(token|auth|jwt|secret|password|api_key)/i.test(key)) {
+                      storageVulnerabilities.push(
+                        `${storageName} içinde hassas anahtar: '${key}'`,
+                      );
+                    }
+                    if (
+                      value &&
+                      /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/.test(
+                        value,
+                      )
+                    ) {
+                      if (
+                        !storageVulnerabilities.some((v) => v.includes(key))
+                      ) {
+                        storageVulnerabilities.push(
+                          `${storageName} ('${key}') içinde şifresiz JWT!`,
+                        );
+                      }
+                    }
+                  }
+                };
+                checkStorage(window.localStorage, "LocalStorage");
+                checkStorage(window.sessionStorage, "SessionStorage");
+              } catch (e) {}
+
+              const formVulnerabilities = [];
+              const forms = document.querySelectorAll("form");
+              forms.forEach((f, index) => {
+                const action = f.getAttribute("action");
+                if (
+                  action &&
+                  action.trim().toLowerCase().startsWith("http://")
+                ) {
+                  formVulnerabilities.push(
+                    `Form #${index + 1} güvensiz (HTTP) gönderim yapıyor!`,
+                  );
+                }
+              });
 
               return {
                 jsFiles: scriptSrcs,
                 detectedRiskyFunctions,
                 detectedSecrets,
+                storageVulnerabilities,
+                formVulnerabilities,
                 mixedContentIssues,
                 domainAnalysis: {
                   hostname: currentHostname,
@@ -306,7 +396,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
           }),
         ]);
-
         //const malwareResult = results[0] || { status: "rejected" };
         const rawCookies = results[0] || { status: "rejected", value: [] };
         const pageAnalysisResult = results[1] || { status: "rejected" };
@@ -315,14 +404,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           rawCookies.status === "fulfilled" && Array.isArray(rawCookies.value)
             ? rawCookies.value
             : [];
-
         const cookiesArray = safeCookieList.map((c) => {
           let risks = [];
           if (!c.httpOnly && c.value) risks.push("XSS Riski (HttpOnly Yok)");
           if (!c.secure) risks.push("MitM Riski (Secure Yok)");
           if (c.sameSite === "no_restriction" && !c.secure)
             risks.push("CSRF Riski (SameSite=None ve Secure değil)");
-
           return {
             name: c.name,
             domain: c.domain,
@@ -340,17 +427,60 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             ? pageAnalysisResult.value[0].result
             : {};
 
+        const cspVulnerabilities = [];
+        const cspHeader = securityHeaders["Content-Security-Policy"] || "";
+        if (cspHeader !== "Eksik") {
+          if (cspHeader.includes("unsafe-inline"))
+            cspVulnerabilities.push(
+              "CSP 'unsafe-inline' içeriyor (XSS riski).",
+            );
+          if (cspHeader.includes("unsafe-eval"))
+            cspVulnerabilities.push(
+              "CSP 'unsafe-eval' içeriyor (DOM tabanlı XSS riski).",
+            );
+          if (
+            !cspHeader.includes("default-src") &&
+            !cspHeader.includes("script-src")
+          )
+            cspVulnerabilities.push(
+              "Temel kaynak kısıtlamaları (default-src/script-src) eksik.",
+            );
+        }
+
+        let detectedWAF = "Tespit Edilemedi / Korunmasız";
+        const headerStr = JSON.stringify(headers).toLowerCase();
+        if (headerStr.includes("cf-ray") || headerStr.includes("cloudflare"))
+          detectedWAF = "Cloudflare";
+        else if (headerStr.includes("x-sucuri")) detectedWAF = "Sucuri WAF";
+        else if (
+          headerStr.includes("x-amz-cf-id") ||
+          headerStr.includes("awselb")
+        )
+          detectedWAF = "AWS WAF";
+        else if (headerStr.includes("x-akamai")) detectedWAF = "Akamai";
+        else if (headerStr.includes("bigip") || headerStr.includes("f5"))
+          detectedWAF = "F5 BIG-IP";
+        else if (
+          headerStr.includes("imperva") ||
+          headerStr.includes("incapsula")
+        )
+          detectedWAF = "Imperva Incapsula";
+
         sendResponse({
           url: site_url,
           securityHeaders,
+          detectedWAF,
           riskyFunctions: resultData.detectedRiskyFunctions || [],
           leakedSecrets: resultData.detectedSecrets || [],
+          storageVulnerabilities: resultData.storageVulnerabilities || [],
+          formVulnerabilities: resultData.formVulnerabilities || [],
           mixedContent: resultData.mixedContentIssues || [],
           domainAnalysis: resultData.domainAnalysis || {},
           detectedFrameworks: resultData.detectedFrameworks || [],
-          detectedUIFrameworks: resultData.detectedUIFrameworks || [], // Tailwind ve Bootstrap burada yakalanacak
+          detectedUIFrameworks: resultData.detectedUIFrameworks || [],
           jsFiles: resultData.jsFiles || [],
           scriptStats: resultData.scriptStats || {},
+          cspVulnerabilities: cspVulnerabilities,
           cookies: cookiesArray,
           /*malwareScan:
             malwareResult.status === "fulfilled"
@@ -367,35 +497,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "explain") {
-    console.log("AI açıklaması istendi");
     (async () => {
       try {
         const explanation = await getAIExplanation(message.data);
         sendResponse(explanation);
       } catch (error) {
-        console.error("AI açıklama hatası:", error);
         sendResponse("AI açıklaması alınamadı.");
       }
     })();
     return true;
   }
-
   if (message.action === "performance") {
-    const site_url = message.url;
-    console.log("Performans testi istendi:", site_url);
-
     (async () => {
       try {
-        const page_speed_scores = await pageSpeedScores(site_url);
+        const page_speed_scores = await pageSpeedScores(message.url);
         sendResponse(page_speed_scores);
       } catch (error) {
-        console.error("Performans testi hatası:", error);
         sendResponse(null);
       }
     })();
     return true;
   }
-
   if (message.action === "analyzeApiEndpoints") {
     (async () => {
       const data = await chrome.storage.session.get("detectedApiCalls");

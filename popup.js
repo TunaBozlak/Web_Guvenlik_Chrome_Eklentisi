@@ -65,7 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
     explanation_content.innerText = "";
     download_button.disabled = true;
     ai_button.disabled = true;
-
     loading.style.display = "block";
 
     const site_url = (
@@ -74,22 +73,18 @@ document.addEventListener("DOMContentLoaded", () => {
         function: () => window.location.href,
       })
     )[0].result;
-    console.log("Analizlenen site (popup'dan):", site_url);
 
     const response = await chrome.runtime.sendMessage({
       action: "analyze",
       url: site_url,
     });
-
     const apiResponse = await chrome.runtime.sendMessage({
       action: "analyzeApiEndpoints",
     });
     response.endpoints = apiResponse?.endpoints || [];
 
     loading.style.display = "none";
-
-    const endTime = Date.now();
-    const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
+    const durationInSeconds = ((Date.now() - startTime) / 1000).toFixed(2);
 
     const headerContainer = document.createElement("div");
     headerContainer.style.marginBottom = "15px";
@@ -110,7 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
       box.style.borderRadius = "8px";
       box.style.marginBottom = "10px";
       box.style.border = `1px solid ${textColor}`;
-
       let listHtml = items.map((i) => `<li>${i}</li>`).join("");
       box.innerHTML = `<strong style="display:flex; align-items:center; gap:5px;">${icon} ${title}</strong>
                        <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size:0.9em;">${listHtml}</ul>`;
@@ -122,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Kritik Uyarı: Şüpheli Alan Adı!",
         [
           response.domainAnalysis.warning,
-          `Tespit edilen: ${response.domainAnalysis.hostname}`,
+          `Tespit: ${response.domainAnalysis.hostname}`,
         ],
         "#ffebee",
         "#d32f2f",
@@ -139,6 +133,33 @@ document.addEventListener("DOMContentLoaded", () => {
       "🔑",
     );
     if (secretsBox) results_content.appendChild(secretsBox);
+
+    const storageBox = createAlertBox(
+      "Yerel Hafıza (Storage) Zafiyetleri",
+      response.storageVulnerabilities,
+      "#fce4ec",
+      "#c2185b",
+      "💾",
+    );
+    if (storageBox) results_content.appendChild(storageBox);
+
+    const formBox = createAlertBox(
+      "Güvensiz Form / Parola Yapılandırması",
+      response.formVulnerabilities,
+      "#fffde7",
+      "#f57f17",
+      "📝",
+    );
+    if (formBox) results_content.appendChild(formBox);
+
+    const cspBox = createAlertBox(
+      "CSP (İçerik Güvenlik Politikası) Riskleri",
+      response.cspVulnerabilities,
+      "#e8eaf6",
+      "#3f51b5",
+      "🚧",
+    );
+    if (cspBox) results_content.appendChild(cspBox);
 
     const mixedContentBox = createAlertBox(
       "Güvenlik Açığı: Karma İçerik (Mixed Content)",
@@ -163,12 +184,11 @@ document.addEventListener("DOMContentLoaded", () => {
         (c) => c.risks && c.risks.length > 0,
       );
       if (riskyCookies.length > 0) {
-        const cookieWarnings = riskyCookies.map(
-          (c) => `<strong>${c.name}</strong>: ${c.risks.join(", ")}`,
-        );
         const cookieBox = createAlertBox(
           "Riskli Çerez Yapılandırmaları",
-          cookieWarnings,
+          riskyCookies.map(
+            (c) => `<strong>${c.name}</strong>: ${c.risks.join(", ")}`,
+          ),
           "#e8f4fd",
           "#0277bd",
           "🍪",
@@ -182,14 +202,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const score_div = document.createElement("div");
     score_div.innerHTML = `
-      <div style="font-size: 1.1em; margin-bottom: 5px;"><strong>Genel Güvenlik Skoru:</strong> ${score} / 100</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="font-size: 1.1em;"><strong>Skor:</strong> ${score} / 100</div>
+        <div style="background: ${response.detectedWAF !== "Tespit Edilemedi / Korunmasız" ? "#e8f5e9" : "#ffebee"}; color: ${response.detectedWAF !== "Tespit Edilemedi / Korunmasız" ? "#2e7d32" : "#c62828"}; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; border: 1px solid currentColor;">
+          🛡️ WAF: <strong>${response.detectedWAF}</strong>
+        </div>
+      </div>
       <div style="background: #e0e0e0; border-radius: 8px; overflow: hidden; width: 100%; height: 12px; margin-bottom: 15px;">
-        <div style="
-          width: ${score}%;
-          height: 100%;
-          background: ${score >= 80 ? "#4caf50" : score >= 50 ? "#ff9800" : "#f44336"};
-          transition: width 0.5s ease-in-out;
-        "></div>
+        <div style="width: ${score}%; height: 100%; background: ${score >= 80 ? "#4caf50" : score >= 50 ? "#ff9800" : "#f44336"}; transition: width 0.5s ease-in-out;"></div>
       </div>
     `;
     headerContainer.appendChild(score_div);
@@ -198,6 +218,50 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = createCard(title, status);
       results_content.appendChild(card);
     });
+
+    const markdownBtn = document.createElement("button");
+    markdownBtn.className = "btn-outline";
+    markdownBtn.style.marginTop = "10px";
+    markdownBtn.innerHTML = "📝 Markdown Raporu Kopyala";
+
+    markdownBtn.addEventListener("click", () => {
+      const mdReport = `
+# Güvenlik Analiz Raporu
+**Hedef URL:** \`${response.url}\`
+**Genel Güvenlik Skoru:** ${score}/100
+**Tespit Edilen WAF:** ${response.detectedWAF}
+
+## 1. Kritik Zafiyetler
+${response.leakedSecrets && response.leakedSecrets.length > 0 ? response.leakedSecrets.map((s) => `- [CRITICAL] Hassas Veri: ${s}`).join("\n") : "- Tespit edilmedi."}
+${response.domainAnalysis && response.domainAnalysis.isSuspicious ? `- [HIGH] Oltalama Riski: ${response.domainAnalysis.warning}` : "- Oltalama riski yok."}
+
+## 2. Web Yapılandırma ve CSP
+${response.cspVulnerabilities && response.cspVulnerabilities.length > 0 ? response.cspVulnerabilities.map((c) => `- [MEDIUM] CSP: ${c}`).join("\n") : "- Zafiyetli CSP kuralı bulunamadı."}
+${response.mixedContent && response.mixedContent.length > 0 ? response.mixedContent.map((m) => `- [LOW] Mixed Content: ${m}`).join("\n") : "- Karma içerik yok."}
+
+## 3. Depolama ve Fonksiyon Riskleri
+${response.storageVulnerabilities && response.storageVulnerabilities.length > 0 ? response.storageVulnerabilities.map((s) => `- [HIGH] Storage Sızıntısı: ${s}`).join("\n") : "- Yerel hafıza temiz."}
+${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.riskyFunctions.map((r) => `- [LOW] Tehlikeli Fonksiyon: \`${r}\``).join("\n") : "- Tespit edilmedi."}
+
+## 4. Kullanılan Teknolojiler
+- **Frameworkler:** ${response.detectedFrameworks.map((f) => (f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
+- **UI Kütüphaneleri:** ${response.detectedUIFrameworks.map((f) => (typeof f === "string" ? f : f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
+      `;
+      navigator.clipboard.writeText(mdReport.trim());
+      markdownBtn.innerHTML = "✅ Kopyalandı!";
+      setTimeout(
+        () => (markdownBtn.innerHTML = "📝 Markdown Raporu Kopyala"),
+        2000,
+      );
+    });
+
+    const secondaryActionsDiv = document.querySelector(".secondary-actions");
+    if (secondaryActionsDiv) {
+      const oldBtn = secondaryActionsDiv.querySelector("#md-btn");
+      if (oldBtn) oldBtn.remove();
+      markdownBtn.id = "md-btn";
+      secondaryActionsDiv.appendChild(markdownBtn);
+    }
 
     const endpoints = response?.endpoints || [];
     if (endpoints.length > 0) {
@@ -244,6 +308,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       items.forEach((item) => {
         const name = typeof item === "string" ? item : item.name;
+
+        const versionHTML =
+          typeof item === "object" && item.version
+            ? `<span style="margin-left:6px; padding:2px 6px; background:rgba(0,0,0,0.08); border-radius:10px; font-size:0.75em; color:var(--text-secondary); font-weight:bold;">v${item.version}</span>`
+            : "";
+
         const li = document.createElement("li");
         li.style.display = "flex";
         li.style.alignItems = "center";
@@ -256,7 +326,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const logoImg = logoPath
           ? `<img src="${logoPath}" alt="${name}" style="width:16px; height:16px; margin-right:6px;">`
           : "";
-        li.innerHTML = `${logoImg}<span style="font-weight: 500;">${name}</span>`;
+
+        li.innerHTML = `${logoImg}<span style="font-weight: 500;">${name}</span>${versionHTML}`;
         ul.appendChild(li);
       });
       results_content.appendChild(ul);
@@ -314,7 +385,6 @@ document.addEventListener("DOMContentLoaded", () => {
       securityScore: score,
       ...response,
     });
-
     download_button.addEventListener("click", () =>
       downloadPdf(response, site_url),
     );
@@ -338,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
     explanation_content.innerText = "";
     download_button.disabled = true;
     ai_button.disabled = true;
-
     loading.style.display = "block";
 
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -348,17 +417,14 @@ document.addEventListener("DOMContentLoaded", () => {
         function: () => window.location.href,
       })
     )[0].result;
-    console.log("Performans testi yapılan site (popup'dan):", site_url);
 
     const page_speed_scores = await chrome.runtime.sendMessage({
       action: "performance",
       url: site_url,
     });
-
     loading.style.display = "none";
 
-    const endTime = Date.now();
-    const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
+    const durationInSeconds = ((Date.now() - startTime) / 1000).toFixed(2);
     const duration_div = document.createElement("div");
     duration_div.innerHTML = `<strong>Analiz Süresi:</strong> ${durationInSeconds} saniye`;
     duration_div.style.marginBottom = "8px";
@@ -408,7 +474,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const title = document.createElement("div");
     title.innerHTML = "<strong>Performans Raporu</strong> ";
-
     const arrow = document.createElement("span");
     arrow.innerHTML = "&#9660;";
     arrow.style.marginLeft = "8px";
@@ -434,11 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const details = document.createElement("div");
     details.classList.add("details");
     details.style.display = "none";
-    details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
-      page_speed_scores,
-      null,
-      2,
-    )}</pre>`;
+    details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(page_speed_scores, null, 2)}</pre>`;
 
     item.appendChild(details);
     results_content.appendChild(item);
@@ -452,7 +513,6 @@ document.addEventListener("DOMContentLoaded", () => {
       type: "performance",
       pageSpeed: page_speed_scores,
     });
-
     download_button.addEventListener("click", () => {
       downloadPdf(page_speed_scores, site_url);
     });
