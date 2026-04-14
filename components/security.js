@@ -1,24 +1,21 @@
 export const analyzeSecurityStatus = (response, site_url) => {
   const statuses = {};
 
-  statuses["HTTPS "] = site_url.startsWith("https://") ? "safe" : "danger";
+  statuses["HTTPS Bağlantısı"] = site_url.startsWith("https://")
+    ? "safe"
+    : "danger";
 
   const headers = response.securityHeaders || {};
   const header_keys = Object.keys(headers).map((k) => k.toLowerCase());
 
-  statuses["Strict-Transport-Security"] = header_keys.includes(
-    "strict-transport-security",
-  )
-    ? "safe"
-    : "warning";
-  statuses["Content-Security-Policy"] = header_keys.includes(
-    "content-security-policy",
-  )
-    ? "safe"
-    : "warning";
-  statuses["X-Frame-Options"] = header_keys.includes("x-frame-options")
-    ? "safe"
-    : "danger";
+  let missingHeaders = 0;
+  if (!header_keys.includes("strict-transport-security")) missingHeaders++;
+  if (!header_keys.includes("content-security-policy")) missingHeaders++;
+  if (!header_keys.includes("x-frame-options")) missingHeaders++;
+
+  if (missingHeaders === 0) statuses["Güvenlik Başlıkları"] = "safe";
+  else if (missingHeaders < 3) statuses["Güvenlik Başlıkları"] = "warning";
+  else statuses["Güvenlik Başlıkları"] = "danger";
 
   const cookies = response.cookies || [];
   const insecure_cookies = cookies.filter(
@@ -33,7 +30,8 @@ export const analyzeSecurityStatus = (response, site_url) => {
 
   const leakedDataCount =
     (response.leakedSecrets?.length || 0) +
-    (response.storageVulnerabilities?.length || 0);
+    (response.storageVulnerabilities?.length || 0) +
+    (response.devComments?.length || 0);
   statuses["Hassas Veri Sızıntısı"] = leakedDataCount === 0 ? "safe" : "danger";
 
   const contentRiskCount =
@@ -41,6 +39,9 @@ export const analyzeSecurityStatus = (response, site_url) => {
     (response.mixedContent?.length || 0);
   statuses["İçerik & Form Güvenliği"] =
     contentRiskCount === 0 ? "safe" : "warning";
+
+  const corsCount = response.corsVulnerabilities?.length || 0;
+  statuses["CORS ve Sunucu"] = corsCount === 0 ? "safe" : "warning";
 
   statuses["Oltalama (Phishing)"] = response.domainAnalysis?.isSuspicious
     ? "danger"
@@ -51,6 +52,7 @@ export const analyzeSecurityStatus = (response, site_url) => {
   const detected_count = Object.values(scans).filter(
     (scan) => scan.detected === true,
   );
+
   statuses["Virustotal "] =
     detected_count.length === 0
       ? "safe"
@@ -63,14 +65,13 @@ export const analyzeSecurityStatus = (response, site_url) => {
 
 export const calculateSecurityScore = (statuses) => {
   const points = {
-    "HTTPS ": 10,
-    "Strict-Transport-Security": 5,
-    "Content-Security-Policy": 10,
-    "X-Frame-Options": 10,
+    "HTTPS Bağlantısı": 10,
+    "Güvenlik Başlıkları": 15,
     "Çerez Güvenliği": 10,
     "JavaScript Riskleri": 10,
     "Hassas Veri Sızıntısı": 20,
     "İçerik & Form Güvenliği": 10,
+    "CORS ve Sunucu": 10,
     "Oltalama (Phishing)": 10,
     "Virustotal ": 5,
   };

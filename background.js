@@ -5,17 +5,21 @@ import { pageSpeedScores } from "./components/performance.js";
 const saveHeaders = async (url, headers) => {
   const data = await chrome.storage.session.get("latestHeaders");
   const latestHeaders = data.latestHeaders || {};
+  const origin = new URL(url).origin;
   latestHeaders[url] = headers;
+  latestHeaders[origin] = headers;
   await chrome.storage.session.set({ latestHeaders });
 };
 
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
-    const headers = {};
-    for (const header of details.responseHeaders) {
-      headers[header.name.toLowerCase()] = header.value;
+    if (details.type === "main_frame") {
+      const headers = {};
+      for (const header of details.responseHeaders) {
+        headers[header.name.toLowerCase()] = header.value;
+      }
+      saveHeaders(details.url, headers);
     }
-    saveHeaders(details.url, headers);
   },
   { urls: ["<all_urls>"] },
   ["responseHeaders"],
@@ -82,9 +86,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!tabId) throw new Error("Aktif sekme bulunamadı.");
 
         const storageData = await chrome.storage.session.get("latestHeaders");
-        const headers =
-          (storageData.latestHeaders && storageData.latestHeaders[site_url]) ||
+        const origin = new URL(site_url).origin;
+
+        let headers =
+          (storageData.latestHeaders &&
+            (storageData.latestHeaders[site_url] ||
+              storageData.latestHeaders[origin])) ||
           {};
+
+        if (Object.keys(headers).length === 0) {
+          try {
+            const fetchRes = await fetch(site_url, {
+              method: "HEAD",
+              cache: "no-cache",
+            });
+            fetchRes.headers.forEach((value, key) => {
+              headers[key.toLowerCase()] = value;
+            });
+            console.log("Headerlar anlık FETCH ile kurtarıldı!");
+          } catch (e) {
+            console.warn("Canlı Header çekilemedi, sadece DOM incelenecek.");
+          }
+        }
 
         const securityHeaders = {
           "Content-Security-Policy":
@@ -92,6 +115,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           "X-Frame-Options": headers["x-frame-options"] || "Eksik",
           "Strict-Transport-Security":
             headers["strict-transport-security"] || "Eksik",
+          "X-Content-Type-Options":
+            headers["x-content-type-options"] || "Eksik",
+          "CORS-Allow-Origin":
+            headers["access-control-allow-origin"] || "Kısıtlı (Güvenli)",
+          "Server-Bilgisi": headers["server"] || "Gizlenmiş",
+          "X-Powered-By": headers["x-powered-by"] || "Gizlenmiş",
         };
 
         const results = await Promise.allSettled([
@@ -176,10 +205,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const insecureUrls = allUrls.filter(
                   (url) => url && url.startsWith("http://"),
                 );
-                if (insecureUrls.length > 0)
+                if (insecureUrls.length > 0) {
                   mixedContentIssues.push(
                     `${insecureUrls.length} adet güvensiz (HTTP) kaynak tespit edildi.`,
                   );
+                }
               }
 
               const currentHostname = window.location.hostname;
@@ -220,8 +250,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               });
 
               const winProps = Object.keys(window);
-
-              // YENİ: Versiyon Numarası Yakalama Fonksiyonları
               const getVersion = (obj) =>
                 obj && obj.version ? obj.version : null;
               const extractVerFromUrl = (url) => {
@@ -231,7 +259,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return match ? match[1] : null;
               };
 
-              // RAM (Window Objesi) Üzerinden Versiyonlu Framework Tespiti
               if (
                 window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
                 winProps.some((p) => p.startsWith("_reactRootContainer"))
@@ -274,7 +301,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   detectedFrameworks.push({ name: "jQuery", version: v });
               }
 
-              // UI CSS Kütüphaneleri Versiyon Tespiti
               const detectedUIFrameworks = [];
               const allElements = document.querySelectorAll("*");
               const classList = [];
@@ -286,7 +312,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const linkHrefs = Array.from(
                 document.querySelectorAll("link[href]"),
               ).map((l) => l.href);
-
               const twLink = linkHrefs.find((h) => /tailwind/i.test(h));
               const twCount = classList.filter((c) =>
                 /^(tw-|text-|bg-|p-|m-|flex-|grid-|justify-)/.test(c),
@@ -297,7 +322,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   version: twLink ? extractVerFromUrl(twLink) : null,
                 });
               }
-
               const bsLink = linkHrefs.find((h) => /bootstrap/i.test(h));
               if (
                 classList.some((c) =>
@@ -310,12 +334,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   version: bsLink ? extractVerFromUrl(bsLink) : null,
                 });
               }
-
               if (classList.some((c) => /^Mui/.test(c)))
                 detectedUIFrameworks.push({ name: "Material UI" });
               if (classList.some((c) => /^ant-/.test(c)))
                 detectedUIFrameworks.push({ name: "Ant Design" });
-
               const bulmaLink = linkHrefs.find((h) => /bulma/i.test(h));
               if (
                 classList.some((c) =>
@@ -374,12 +396,61 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
               });
 
+              const hiddenInputs = [];
+              document
+                .querySelectorAll("input[type='hidden']")
+                .forEach((inp) => {
+                  if (inp.name || inp.id) {
+                    let val = inp.value;
+                    if (val.length > 25) val = val.substring(0, 25) + "...";
+                    hiddenInputs.push(`${inp.name || inp.id}: ${val || "Boş"}`);
+                  }
+                });
+
+              const suspiciousLinks = [];
+              document.querySelectorAll("a").forEach((a) => {
+                const href = a.getAttribute("href");
+                if (
+                  href &&
+                  /(admin|login|dashboard|portal|cpanel|wp-admin|config|setup)/i.test(
+                    href,
+                  )
+                ) {
+                  if (!suspiciousLinks.includes(href))
+                    suspiciousLinks.push(href);
+                }
+              });
+
+              const devComments = [];
+              try {
+                const iterator = document.createNodeIterator(
+                  document.documentElement,
+                  NodeFilter.SHOW_COMMENT,
+                  null,
+                );
+                let currentNode;
+                while ((currentNode = iterator.nextNode())) {
+                  const commentText = currentNode.nodeValue;
+                  if (
+                    /(todo|fixme|admin|pass|key|http|api)/i.test(commentText)
+                  ) {
+                    let cleanText = commentText.trim();
+                    if (cleanText.length > 60)
+                      cleanText = cleanText.substring(0, 60) + "...";
+                    if (cleanText) devComments.push(cleanText);
+                  }
+                }
+              } catch (e) {}
+
               return {
                 jsFiles: scriptSrcs,
                 detectedRiskyFunctions,
                 detectedSecrets,
                 storageVulnerabilities,
                 formVulnerabilities,
+                hiddenInputs,
+                suspiciousLinks,
+                devComments,
                 mixedContentIssues,
                 domainAnalysis: {
                   hostname: currentHostname,
@@ -441,11 +512,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (
             !cspHeader.includes("default-src") &&
             !cspHeader.includes("script-src")
-          )
+          ) {
             cspVulnerabilities.push(
               "Temel kaynak kısıtlamaları (default-src/script-src) eksik.",
             );
+          }
         }
+
+        const corsVulnerabilities = [];
+        if (headers["access-control-allow-origin"] === "*") {
+          corsVulnerabilities.push(
+            "CORS politikası çok gevşek (*). API verileri çalınabilir!",
+          );
+        }
+        if (headers["x-powered-by"]) {
+          corsVulnerabilities.push(
+            `Sunucu teknolojisini sızdırıyor: ${headers["x-powered-by"]}`,
+          );
+        }
+
+        let hiddenFiles = [];
+        try {
+          const robotsRes = await fetch(`${origin}/robots.txt`, {
+            method: "HEAD",
+            cache: "no-cache",
+          });
+          if (robotsRes.ok)
+            hiddenFiles.push(`${origin}/robots.txt (Gizli dizinler olabilir)`);
+
+          const secRes = await fetch(`${origin}/.well-known/security.txt`, {
+            method: "HEAD",
+            cache: "no-cache",
+          });
+          if (secRes.ok)
+            hiddenFiles.push(
+              `${origin}/.well-known/security.txt (Bug Bounty programı var!)`,
+            );
+        } catch (e) {}
 
         let detectedWAF = "Tespit Edilemedi / Korunmasız";
         const headerStr = JSON.stringify(headers).toLowerCase();
@@ -474,6 +577,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           leakedSecrets: resultData.detectedSecrets || [],
           storageVulnerabilities: resultData.storageVulnerabilities || [],
           formVulnerabilities: resultData.formVulnerabilities || [],
+          hiddenInputs: resultData.hiddenInputs || [],
+          suspiciousLinks: resultData.suspiciousLinks || [],
+          devComments: resultData.devComments || [],
+          corsVulnerabilities: corsVulnerabilities || [],
+          hiddenFiles: hiddenFiles || [],
           mixedContent: resultData.mixedContentIssues || [],
           domainAnalysis: resultData.domainAnalysis || {},
           detectedFrameworks: resultData.detectedFrameworks || [],

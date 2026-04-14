@@ -1,25 +1,25 @@
 export const createCard = (title, status) => {
   const tooltipDescriptions = {
-    "HTTPS ": "HTTPS, iletişimi şifreleyerek verilerin güvenliğini sağlar.",
-    "Strict-Transport-Security":
-      "Tarayıcıya yalnızca HTTPS ile bağlanmasını söyler.",
-    "Content-Security-Policy":
-      "XSS gibi saldırılara karşı kaynak kısıtlaması yapar.",
-    "X-Frame-Options": "Clickjacking saldırılarını engeller.",
-    "Virustotal ": "Site kötü amaçlı içerik açısından analiz edilir.",
+    "HTTPS Bağlantısı":
+      "HTTPS, iletişimi şifreleyerek verilerin güvenliğini sağlar.",
+    "Güvenlik Başlıkları":
+      "HSTS, CSP ve X-Frame-Options gibi kritik HTTP güvenlik başlıklarının yapılandırmasını gösterir.",
     "Çerez Güvenliği": "Secure, HttpOnly ve SameSite ayarları kontrol edilir.",
     "JavaScript Riskleri":
-      "eval, document.write gibi riskli fonksiyonlar analiz edilir.",
+      "eval, document.write gibi DOM tabanlı riskli fonksiyonlar analiz edilir.",
     "Hassas Veri Sızıntısı":
-      "Sayfa kaynağında veya yerel hafızada unutulmuş API anahtarları (AWS, JWT vb.) aranır.",
+      "Sayfa kaynağında, yerel hafızada veya HTML yorumlarında unutulmuş API anahtarları aranır.",
     "İçerik & Form Güvenliği":
       "Güvensiz form gönderimleri ve HTTP üzerinden yüklenen güvensiz (Karma) kaynaklar kontrol edilir.",
+    "CORS ve Sunucu":
+      "CORS politikası zafiyetleri ve sunucu başlığı (X-Powered-By) sızıntılarını denetler.",
     "Oltalama (Phishing)":
       "Domain adının bilinen markaları (Google, Facebook vb.) taklit edip etmediği kontrol edilir.",
     "Performans ": "Sayfa hız ve deneyim skorları.",
     "Erişilebilirlik ": "Engelli kullanıcı uyumluluğu.",
     "En İyi Uygulamalar": "Modern web standartları kontrol edilir.",
     "SEO ": "Arama motoru uyumluluğu.",
+    "Virustotal ": "Site kötü amaçlı içerik açısından analiz edilir.",
   };
 
   const card = document.createElement("div");

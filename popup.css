@@ -167,16 +167,26 @@ button {
   gap: 10px;
 }
 
+.status-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .security-card {
   position: relative;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-radius: 8px;
   background: var(--card-bg);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: 0;
+  min-height: 48px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: var(--shadow-sm);
   color: var(--text-main);
   border: 1px solid var(--border-color);
@@ -188,29 +198,32 @@ button {
 }
 
 .security-card.safe {
-  border-left: 5px solid var(--success);
+  border-left: 4px solid var(--success);
 }
 .security-card.warning {
-  border-left: 5px solid var(--warning);
+  border-left: 4px solid var(--warning);
 }
 .security-card.danger {
-  border-left: 5px solid var(--danger);
+  border-left: 4px solid var(--danger);
 }
 
 .card-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
+
 .card-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--text-main);
+  line-height: 1.2;
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
@@ -226,10 +239,11 @@ button {
 }
 
 .status-badge {
-  font-size: 11px;
-  padding: 4px 10px;
+  font-size: 10px;
+  padding: 3px 6px;
   border-radius: 20px;
   font-weight: 600;
+  margin-left: 4px;
 }
 .status-badge.safe {
   background: rgba(16, 185, 129, 0.15);
@@ -251,13 +265,13 @@ button {
   background: #333;
   color: #fff;
   padding: 5px 10px;
-  font-size: 12px;
+  font-size: 11px;
   border-radius: 4px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
   z-index: 10;
-  width: 200px;
+  width: 180px;
 }
 .security-card:hover .tooltip-modern {
   opacity: 1;

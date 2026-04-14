@@ -98,16 +98,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const createAlertBox = (title, items, bgColor, textColor, icon) => {
       if (!items || items.length === 0) return null;
+
       const box = document.createElement("div");
       box.style.background = bgColor;
       box.style.color = textColor;
-      box.style.padding = "10px";
+      box.style.padding = "12px";
       box.style.borderRadius = "8px";
-      box.style.marginBottom = "10px";
-      box.style.border = `1px solid ${textColor}`;
-      let listHtml = items.map((i) => `<li>${i}</li>`).join("");
-      box.innerHTML = `<strong style="display:flex; align-items:center; gap:5px;">${icon} ${title}</strong>
-                       <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size:0.9em;">${listHtml}</ul>`;
+      box.style.marginBottom = "12px";
+      box.style.border = `1px solid ${textColor}50`;
+
+      let listHtml = items
+        .map(
+          (i) =>
+            `<li style="margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed ${textColor}40;">${i}</li>`,
+        )
+        .join("");
+
+      box.innerHTML = `
+        <strong style="display:flex; align-items:center; gap:8px; margin-bottom: 10px; font-size:1.05em;">
+           ${icon} ${title} 
+           <span style="background:${textColor}; color:${bgColor}; padding:2px 8px; border-radius:12px; font-size:0.75em;">${items.length}</span>
+        </strong>
+        <ul style="margin: 0; padding-left: 20px; font-size:0.85em; max-height: 110px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: ${textColor} transparent;">
+           ${listHtml}
+        </ul>`;
       return box;
     };
 
@@ -195,6 +209,15 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         if (cookieBox) results_content.appendChild(cookieBox);
       }
+
+      const corsBox = createAlertBox(
+        "CORS & Sunucu Başlığı Zafiyetleri",
+        response.corsVulnerabilities,
+        "#fff8e1",
+        "#f57f17",
+        "🌐",
+      );
+      if (corsBox) results_content.appendChild(corsBox);
     }
 
     const statuses = analyzeSecurityStatus(response, site_url);
@@ -214,10 +237,15 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     headerContainer.appendChild(score_div);
 
+    const cardsContainer = document.createElement("div");
+    cardsContainer.className = "status-cards-grid";
+
     Object.entries(statuses).forEach(([title, status]) => {
       const card = createCard(title, status);
-      results_content.appendChild(card);
+      cardsContainer.appendChild(card);
     });
+
+    results_content.appendChild(cardsContainer);
 
     const markdownBtn = document.createElement("button");
     markdownBtn.className = "btn-outline";
@@ -243,7 +271,11 @@ ${response.mixedContent && response.mixedContent.length > 0 ? response.mixedCont
 ${response.storageVulnerabilities && response.storageVulnerabilities.length > 0 ? response.storageVulnerabilities.map((s) => `- [HIGH] Storage Sızıntısı: ${s}`).join("\n") : "- Yerel hafıza temiz."}
 ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.riskyFunctions.map((r) => `- [LOW] Tehlikeli Fonksiyon: \`${r}\``).join("\n") : "- Tespit edilmedi."}
 
-## 4. Kullanılan Teknolojiler
+## 4. Keşif Bilgileri (Recon)
+- **Gizli Form Alanları (${response.hiddenInputs ? response.hiddenInputs.length : 0}):** ${response.hiddenInputs && response.hiddenInputs.length > 0 ? "\n  - " + response.hiddenInputs.join("\n  - ") : "Bulunmadı"}
+- **Kritik Linkler (${response.suspiciousLinks ? response.suspiciousLinks.length : 0}):** ${response.suspiciousLinks && response.suspiciousLinks.length > 0 ? "\n  - " + response.suspiciousLinks.join("\n  - ") : "Bulunmadı"}
+
+## 5. Kullanılan Teknolojiler
 - **Frameworkler:** ${response.detectedFrameworks.map((f) => (f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
 - **UI Kütüphaneleri:** ${response.detectedUIFrameworks.map((f) => (typeof f === "string" ? f : f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
       `;
@@ -289,6 +321,113 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
         `;
         card.appendChild(div);
       });
+    }
+
+    const createReconAccordion = (title, items, icon) => {
+      if (!items || items.length === 0) return null;
+
+      const container = document.createElement("div");
+      container.style.border = "1px solid var(--border-color)";
+      container.style.borderRadius = "8px";
+      container.style.marginBottom = "10px";
+      container.style.background = "var(--card-bg)";
+      container.style.overflow = "hidden";
+
+      const header = document.createElement("div");
+      header.style.padding = "10px 15px";
+      header.style.cursor = "pointer";
+      header.style.display = "flex";
+      header.style.justifyContent = "space-between";
+      header.style.alignItems = "center";
+      header.style.background = "rgba(0,0,0,0.02)";
+      header.style.fontWeight = "600";
+      header.style.fontSize = "13px";
+
+      const titleWrap = document.createElement("div");
+      titleWrap.style.display = "flex";
+      titleWrap.style.alignItems = "center";
+      titleWrap.style.gap = "8px";
+      titleWrap.innerHTML = `<span>${icon}</span> <span>${title} <span style="background:var(--primary);color:white;padding:2px 6px;border-radius:10px;font-size:10px;margin-left:4px;">${items.length}</span></span>`;
+
+      const arrow = document.createElement("span");
+      arrow.innerHTML = "&#9660;";
+      arrow.style.fontSize = "10px";
+      arrow.style.transition = "transform 0.2s";
+
+      header.appendChild(titleWrap);
+      header.appendChild(arrow);
+
+      const content = document.createElement("div");
+      content.style.padding = "10px 15px";
+      content.style.display = "none";
+      content.style.borderTop = "1px solid var(--border-color)";
+      content.style.fontSize = "12px";
+      content.style.maxHeight = "150px";
+      content.style.overflowY = "auto";
+      content.style.fontFamily = "monospace";
+      content.style.background = "var(--bg-color)";
+
+      let listHtml = items
+        .map(
+          (item) =>
+            `<div style="margin-bottom:4px; padding-bottom:4px; border-bottom:1px dashed var(--border-color); word-break: break-all;">${item}</div>`,
+        )
+        .join("");
+      content.innerHTML = listHtml;
+
+      header.addEventListener("click", () => {
+        const isHidden = content.style.display === "none";
+        content.style.display = isHidden ? "block" : "none";
+        arrow.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
+      });
+
+      container.appendChild(header);
+      container.appendChild(content);
+
+      return container;
+    };
+
+    if (
+      (response.hiddenInputs && response.hiddenInputs.length > 0) ||
+      (response.suspiciousLinks && response.suspiciousLinks.length > 0)
+    ) {
+      const reconTitle = document.createElement("h3");
+      reconTitle.textContent = "Keşif Bilgileri (Recon)";
+      reconTitle.style.marginTop = "20px";
+      reconTitle.style.marginBottom = "10px";
+      reconTitle.style.fontSize = "13px";
+      reconTitle.style.borderBottom = "1px solid var(--border-color)";
+      results_content.appendChild(reconTitle);
+
+      const hiddenInputsAccordion = createReconAccordion(
+        "Gizli Form Alanları (Hidden Inputs)",
+        response.hiddenInputs,
+        "🕵️",
+      );
+      if (hiddenInputsAccordion)
+        results_content.appendChild(hiddenInputsAccordion);
+
+      const suspiciousLinksAccordion = createReconAccordion(
+        "Kritik Linkler (Admin/Portal)",
+        response.suspiciousLinks,
+        "🔗",
+      );
+      if (suspiciousLinksAccordion)
+        results_content.appendChild(suspiciousLinksAccordion);
+
+      const commentsAccordion = createReconAccordion(
+        "Geliştirici Yorumları (HTML Comments)",
+        response.devComments,
+        "💬",
+      );
+      if (commentsAccordion) results_content.appendChild(commentsAccordion);
+
+      const filesAccordion = createReconAccordion(
+        "Gizli Dosya Taraması (robots.txt vs)",
+        response.hiddenFiles,
+        "📂",
+      );
+      if (filesAccordion) results_content.appendChild(filesAccordion);
     }
 
     const renderFrameworks = (title, items, logoMap) => {
