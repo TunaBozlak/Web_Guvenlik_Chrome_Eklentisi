@@ -2,30 +2,38 @@ import { analyzeSecurityStatus, calculateSecurityScore } from "./security.js";
 
 export const drawChart = (trendData) => {
   const ctx = document.getElementById("chart").getContext("2d");
+
   if (window.trendChartInstance) {
     window.trendChartInstance.destroy();
   }
+
   const labels = [];
   const performanceData = [];
   const securityData = [];
-  trendData.forEach((entry) => {
+
+  const recentData = trendData.slice(0, 15).reverse();
+
+  recentData.forEach((entry) => {
     const dateString = entry.date;
     labels.push(dateString);
+
     if (entry.result.type === "performance") {
       const s = entry.result.pageSpeed;
       const score = Math.round(
-        (s.performance + s.accessibility + s.bestPractices + s.seo) / 4
+        (s.performance + s.accessibility + s.bestPractices + s.seo) / 4,
       );
       performanceData.push(score);
       securityData.push(null);
     } else {
       const score = calculateSecurityScore(
-        analyzeSecurityStatus(entry.result, entry.result.site)
+        analyzeSecurityStatus(entry.result, entry.result.site),
       );
+
       securityData.push(score);
       performanceData.push(null);
     }
   });
+
   window.trendChartInstance = new Chart(ctx, {
     type: "bar",
     data: {

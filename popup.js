@@ -7,7 +7,7 @@ import { filterComponent } from "./components/filter.js";
 import { deleteHistory } from "./components/delete.js";
 import { saveAnalysisHistory } from "./components/history.js";
 import { changeTheme } from "./components/theme.js";
-import { downloadPdf } from "./components/download.js";
+import { setupDownloadDropdown } from "./components/download.js";
 
 const frameworks = {
   React: "./images/framework/react.png",
@@ -63,7 +63,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     results_content.innerHTML = "";
     explanation_content.innerText = "";
-    download_button.disabled = true;
+
+    const dlBtn = document.getElementById("download_pdf");
+    if (dlBtn) dlBtn.disabled = true;
+
     ai_button.disabled = true;
     loading.style.display = "block";
 
@@ -201,7 +204,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const cookieBox = createAlertBox(
           "Riskli Çerez Yapılandırmaları",
           riskyCookies.map(
-            (c) => `<strong>${c.name}</strong>: ${c.risks.join(", ")}`,
+            (c) =>
+              `<strong>${c.name || "Bilinmeyen Çerez"}</strong>: ${c.risks.join(", ")}`,
           ),
           "#e8f4fd",
           "#0277bd",
@@ -246,82 +250,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     results_content.appendChild(cardsContainer);
-
-    const markdownBtn = document.createElement("button");
-    markdownBtn.className = "btn-outline";
-    markdownBtn.style.marginTop = "10px";
-    markdownBtn.innerHTML = "📝 Markdown Raporu Kopyala";
-
-    markdownBtn.addEventListener("click", () => {
-      const mdReport = `
-# Güvenlik Analiz Raporu
-**Hedef URL:** \`${response.url}\`
-**Genel Güvenlik Skoru:** ${score}/100
-**Tespit Edilen WAF:** ${response.detectedWAF}
-
-## 1. Kritik Zafiyetler
-${response.leakedSecrets && response.leakedSecrets.length > 0 ? response.leakedSecrets.map((s) => `- [CRITICAL] Hassas Veri: ${s}`).join("\n") : "- Tespit edilmedi."}
-${response.domainAnalysis && response.domainAnalysis.isSuspicious ? `- [HIGH] Oltalama Riski: ${response.domainAnalysis.warning}` : "- Oltalama riski yok."}
-
-## 2. Web Yapılandırma ve CSP
-${response.cspVulnerabilities && response.cspVulnerabilities.length > 0 ? response.cspVulnerabilities.map((c) => `- [MEDIUM] CSP: ${c}`).join("\n") : "- Zafiyetli CSP kuralı bulunamadı."}
-${response.mixedContent && response.mixedContent.length > 0 ? response.mixedContent.map((m) => `- [LOW] Mixed Content: ${m}`).join("\n") : "- Karma içerik yok."}
-
-## 3. Depolama ve Fonksiyon Riskleri
-${response.storageVulnerabilities && response.storageVulnerabilities.length > 0 ? response.storageVulnerabilities.map((s) => `- [HIGH] Storage Sızıntısı: ${s}`).join("\n") : "- Yerel hafıza temiz."}
-${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.riskyFunctions.map((r) => `- [LOW] Tehlikeli Fonksiyon: \`${r}\``).join("\n") : "- Tespit edilmedi."}
-
-## 4. Keşif Bilgileri (Recon)
-- **Gizli Form Alanları (${response.hiddenInputs ? response.hiddenInputs.length : 0}):** ${response.hiddenInputs && response.hiddenInputs.length > 0 ? "\n  - " + response.hiddenInputs.join("\n  - ") : "Bulunmadı"}
-- **Kritik Linkler (${response.suspiciousLinks ? response.suspiciousLinks.length : 0}):** ${response.suspiciousLinks && response.suspiciousLinks.length > 0 ? "\n  - " + response.suspiciousLinks.join("\n  - ") : "Bulunmadı"}
-
-## 5. Kullanılan Teknolojiler
-- **Frameworkler:** ${response.detectedFrameworks.map((f) => (f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
-- **UI Kütüphaneleri:** ${response.detectedUIFrameworks.map((f) => (typeof f === "string" ? f : f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
-      `;
-      navigator.clipboard.writeText(mdReport.trim());
-      markdownBtn.innerHTML = "✅ Kopyalandı!";
-      setTimeout(
-        () => (markdownBtn.innerHTML = "📝 Markdown Raporu Kopyala"),
-        2000,
-      );
-    });
-
-    const secondaryActionsDiv = document.querySelector(".secondary-actions");
-    if (secondaryActionsDiv) {
-      const oldBtn = secondaryActionsDiv.querySelector("#md-btn");
-      if (oldBtn) oldBtn.remove();
-      markdownBtn.id = "md-btn";
-      secondaryActionsDiv.appendChild(markdownBtn);
-    }
-
-    const endpoints = response?.endpoints || [];
-    if (endpoints.length > 0) {
-      const apiHeader = document.createElement("h3");
-      apiHeader.textContent = "API Endpoint Analizi";
-      apiHeader.style.marginTop = "20px";
-      apiHeader.style.borderBottom = "1px solid #ccc";
-      results_content.appendChild(apiHeader);
-
-      const card = document.createElement("div");
-      card.classList.add("api-card-v2");
-      results_content.appendChild(card);
-
-      endpoints.forEach((entry) => {
-        const div = document.createElement("div");
-        div.classList.add("api-card");
-        div.style.padding = "8px";
-        div.style.background = "var(--card-bg, #f9f9f9)";
-        div.style.marginBottom = "5px";
-        div.style.borderRadius = "4px";
-        div.innerHTML = `
-          <div><span style="color: ${entry.method === "GET" ? "#007acc" : "#d32f2f"}; font-weight:bold;">${entry.method}</span> 
-               <span style="color: ${entry.status >= 400 ? "red" : "green"};">[${entry.status}]</span></div>
-          <div style="word-break: break-all; font-size: 0.85em; font-family: monospace;">${entry.url}</div>
-        `;
-        card.appendChild(div);
-      });
-    }
 
     const createReconAccordion = (title, items, icon) => {
       if (!items || items.length === 0) return null;
@@ -389,7 +317,9 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
 
     if (
       (response.hiddenInputs && response.hiddenInputs.length > 0) ||
-      (response.suspiciousLinks && response.suspiciousLinks.length > 0)
+      (response.suspiciousLinks && response.suspiciousLinks.length > 0) ||
+      (response.devComments && response.devComments.length > 0) ||
+      (response.hiddenFiles && response.hiddenFiles.length > 0)
     ) {
       const reconTitle = document.createElement("h3");
       reconTitle.textContent = "Keşif Bilgileri (Recon)";
@@ -479,6 +409,34 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
       ui_frameworks,
     );
 
+    const endpoints = response?.endpoints || [];
+    if (endpoints.length > 0) {
+      const apiHeader = document.createElement("h3");
+      apiHeader.textContent = "API Endpoint Analizi";
+      apiHeader.style.marginTop = "20px";
+      apiHeader.style.borderBottom = "1px solid #ccc";
+      results_content.appendChild(apiHeader);
+
+      const card = document.createElement("div");
+      card.classList.add("api-card-v2");
+      results_content.appendChild(card);
+
+      endpoints.forEach((entry) => {
+        const div = document.createElement("div");
+        div.classList.add("api-card");
+        div.style.padding = "8px";
+        div.style.background = "var(--card-bg, #f9f9f9)";
+        div.style.marginBottom = "5px";
+        div.style.borderRadius = "4px";
+        div.innerHTML = `
+          <div><span style="color: ${entry.method === "GET" ? "#007acc" : "#d32f2f"}; font-weight:bold;">${entry.method}</span> 
+               <span style="color: ${entry.status >= 400 ? "red" : "green"};">[${entry.status}]</span></div>
+          <div style="word-break: break-all; font-size: 0.85em; font-family: monospace;">${entry.url}</div>
+        `;
+        card.appendChild(div);
+      });
+    }
+
     const item = document.createElement("div");
     item.classList.add("item");
     item.style.marginTop = "20px";
@@ -515,7 +473,6 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
     });
 
     const domain = new URL(site_url).origin;
-    download_button.disabled = false;
     ai_button.disabled = false;
 
     saveAnalysisHistory({
@@ -524,9 +481,36 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
       securityScore: score,
       ...response,
     });
-    download_button.addEventListener("click", () =>
-      downloadPdf(response, site_url),
-    );
+
+    const mdReport = `
+# Güvenlik Analiz Raporu
+**Hedef URL:** \`${response.url}\`
+**Tarih:** \`${new Date().toLocaleString("tr-TR")}\`
+**Genel Güvenlik Skoru:** ${score}/100
+**Tespit Edilen WAF:** ${response.detectedWAF}
+
+## 1. Kritik Zafiyetler
+${response.leakedSecrets && response.leakedSecrets.length > 0 ? response.leakedSecrets.map((s) => `- [CRITICAL] Hassas Veri: ${s}`).join("\n") : "- Tespit edilmedi."}
+${response.domainAnalysis && response.domainAnalysis.isSuspicious ? `- [HIGH] Oltalama Riski: ${response.domainAnalysis.warning}` : "- Oltalama riski yok."}
+
+## 2. Web Yapılandırma ve CSP
+${response.cspVulnerabilities && response.cspVulnerabilities.length > 0 ? response.cspVulnerabilities.map((c) => `- [MEDIUM] CSP: ${c}`).join("\n") : "- Zafiyetli CSP kuralı bulunamadı."}
+${response.mixedContent && response.mixedContent.length > 0 ? response.mixedContent.map((m) => `- [LOW] Mixed Content: ${m}`).join("\n") : "- Karma içerik yok."}
+
+## 3. Depolama ve Fonksiyon Riskleri
+${response.storageVulnerabilities && response.storageVulnerabilities.length > 0 ? response.storageVulnerabilities.map((s) => `- [HIGH] Storage Sızıntısı: ${s}`).join("\n") : "- Yerel hafıza temiz."}
+${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.riskyFunctions.map((r) => `- [LOW] Tehlikeli Fonksiyon: \`${r}\``).join("\n") : "- Tespit edilmedi."}
+
+## 4. Keşif Bilgileri (Recon)
+- **Gizli Form Alanları (${response.hiddenInputs ? response.hiddenInputs.length : 0}):** ${response.hiddenInputs && response.hiddenInputs.length > 0 ? "\n  - " + response.hiddenInputs.join("\n  - ") : "Bulunmadı"}
+- **Kritik Linkler (${response.suspiciousLinks ? response.suspiciousLinks.length : 0}):** ${response.suspiciousLinks && response.suspiciousLinks.length > 0 ? "\n  - " + response.suspiciousLinks.join("\n  - ") : "Bulunmadı"}
+
+## 5. Kullanılan Teknolojiler
+- **Frameworkler:** ${response.detectedFrameworks.map((f) => (f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
+- **UI Kütüphaneleri:** ${response.detectedUIFrameworks.map((f) => (typeof f === "string" ? f : f.version ? `${f.name} (v${f.version})` : f.name)).join(", ") || "Bulunamadı"}
+    `;
+
+    setupDownloadDropdown(response, mdReport, site_url);
 
     ai_button.onclick = () => {
       explanation_content.innerText = "";
@@ -545,7 +529,10 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
     const startTime = Date.now();
     results_content.innerHTML = "";
     explanation_content.innerText = "";
-    download_button.disabled = true;
+
+    const dlBtn = document.getElementById("download_pdf");
+    if (dlBtn) dlBtn.disabled = true;
+
     ai_button.disabled = true;
     loading.style.display = "block";
 
@@ -592,10 +579,13 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
     );
     performance_statuses["SEO "] = map_status(page_speed_scores.seo);
 
+    const cardsContainer = document.createElement("div");
+    cardsContainer.className = "status-cards-grid";
     Object.entries(performance_statuses).forEach(([title, status]) => {
       const card = createCard(title, status);
-      results_content.appendChild(card);
+      cardsContainer.appendChild(card);
     });
+    results_content.appendChild(cardsContainer);
 
     const score_div = document.createElement("div");
     score_div.innerHTML = `
@@ -612,7 +602,7 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
     item.classList.add("item");
 
     const title = document.createElement("div");
-    title.innerHTML = "<strong>Performans Raporu</strong> ";
+    title.innerHTML = "<strong>Performans Raporu JSON</strong> ";
     const arrow = document.createElement("span");
     arrow.innerHTML = "&#9660;";
     arrow.style.marginLeft = "8px";
@@ -622,6 +612,10 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
     headerRow.style.display = "flex";
     headerRow.style.justifyContent = "space-between";
     headerRow.style.alignItems = "center";
+    headerRow.style.background = "var(--card-bg, #eee)";
+    headerRow.style.padding = "8px";
+    headerRow.style.borderRadius = "5px";
+
     headerRow.appendChild(title);
     headerRow.appendChild(copy_button);
 
@@ -638,13 +632,12 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
     const details = document.createElement("div");
     details.classList.add("details");
     details.style.display = "none";
-    details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(page_speed_scores, null, 2)}</pre>`;
+    details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; background:#222; color:#0f0; padding:10px; border-radius:5px; font-size:11px;">${JSON.stringify(page_speed_scores, null, 2)}</pre>`;
 
     item.appendChild(details);
     results_content.appendChild(item);
 
     const domain = new URL(site_url).origin;
-    download_button.disabled = false;
     ai_button.disabled = false;
 
     saveAnalysisHistory({
@@ -652,9 +645,22 @@ ${response.riskyFunctions && response.riskyFunctions.length > 0 ? response.risky
       type: "performance",
       pageSpeed: page_speed_scores,
     });
-    download_button.addEventListener("click", () => {
-      downloadPdf(page_speed_scores, site_url);
-    });
+
+    const mdPerfReport = `
+# Performans Analiz Raporu
+**Hedef URL:** \`${site_url}\`
+**Tarih:** \`${new Date().toLocaleString("tr-TR")}\`
+
+## Skorlar (100 Üzerinden)
+- **🚀 Performans:** ${page_speed_scores.performance}
+- **♿ Erişilebilirlik:** ${page_speed_scores.accessibility}
+- **💡 En İyi Uygulamalar:** ${page_speed_scores.bestPractices}
+- **🔍 SEO:** ${page_speed_scores.seo}
+
+> *Bu rapor otomatik performans asistanı ile oluşturulmuştur.*
+    `;
+
+    setupDownloadDropdown(page_speed_scores, mdPerfReport, site_url);
 
     ai_button.onclick = () => {
       explanation_content.innerText = "";

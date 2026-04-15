@@ -8,7 +8,8 @@ export const saveAnalysisHistory = (result) => {
   chrome.storage.local.get("history", (data) => {
     const history = data.history || [];
     history.unshift({
-      date: new Date().toLocaleString(),
+      date: new Date().toLocaleString("tr-TR"),
+      timestamp: Date.now(),
       result,
     });
 
@@ -20,7 +21,7 @@ export const saveAnalysisHistory = (result) => {
 export const displayHistory = (
   start_date = null,
   end_date = null,
-  selected_type = null
+  selected_type = null,
 ) => {
   chrome.storage.local.get("history", (data) => {
     history_div.innerHTML = "";
@@ -31,14 +32,15 @@ export const displayHistory = (
       let typeMatch = true;
 
       if (start_date && end_date) {
-        const dateString = entry.date;
-        const [datePart, timePart] = dateString.split(" ");
-        const [day, month, year] = datePart.split(".").map(Number);
-        const [hour, minute, second] = timePart.split(":").map(Number);
-        const entry_date = new Date(year, month - 1, day, hour, minute, second);
+        const entryTime = entry.timestamp || new Date(entry.date).getTime();
 
-        if (isNaN(entry_date.getTime())) return false;
-        dateMatch = entry_date >= start_date && entry_date <= end_date;
+        if (!isNaN(entryTime)) {
+          dateMatch =
+            entryTime >= start_date.getTime() &&
+            entryTime <= end_date.getTime();
+        } else {
+          dateMatch = false;
+        }
       }
       if (selected_type) {
         typeMatch = entry.result?.type === selected_type;
@@ -144,7 +146,7 @@ export const displayHistory = (
       details.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family:monospace;">${JSON.stringify(
         entry.result,
         null,
-        2
+        2,
       )}</pre>`;
 
       item.appendChild(details);
